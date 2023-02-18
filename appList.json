@@ -1,0 +1,32 @@
+{
+    "Apps": [
+        {
+            "IntuneAppName": "7-Zip",
+            "AppPublisher": "Igor Pavlov",
+            "AppSource": "Evergreen",
+            "AppID": "7zip",
+            "AppFolderName": "7zip",
+            "AppSetupFileName": "setup_7zip.msi",
+            "FilterOptions": [
+                {
+                    "Architecture": "x64",
+                    "Type": "msi"
+                }
+            ]
+        },
+        {
+            "IntuneAppName": "Notepad++",
+            "AppPublisher": "Don Ho",
+            "AppSource": "Evergreen",
+            "AppID": "NotepadPlusPlus",
+            "AppFolderName": "NotepadPlusPlus",
+            "AppSetupFileName": "setup_notepad.exe",
+            "FilterOptions": [
+                {
+                    "Architecture": "x64",
+                    "Type": "exe"
+                }
+            ]
+        }
+    ]
+}

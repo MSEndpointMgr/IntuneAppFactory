@@ -1,0 +1,1 @@
+# Create .zip file of published app folder and upload to Storage account

@@ -1,0 +1,43 @@
+{
+    "PackageInformation": {
+        "SetupType": "EXE",
+        "SetupFile": "Deploy-Application.exe",
+        "SourceFolder": "Source",
+        "OutputFolder": "Package",
+        "IconFile": "Icon.png"
+    },
+    "Information": {
+        "DisplayName": "<replaced_by_pipeline>",
+        "AppVersion": "<replaced_by_pipeline>",
+        "Description": "Install 7-Zip",
+        "Publisher": "<replaced_by_pipeline>",
+        "Notes": "",
+        "Owner": ""
+    },
+    "Program": {
+        "InstallCommand": "Deploy-Application.exe Install",
+        "UninstallCommand": "Deploy-Application.exe Uninstall",
+        "InstallExperience": "system",
+        "DeviceRestartBehavior": "suppress"
+    },
+    "RequirementRule": {
+        "MinimumSupportedWindowsRelease": "1909",
+        "Architecture": "x64"
+    },
+    "CustomRequirementRule": [
+    ],
+    "DetectionRule": [
+        {
+            "Type": "Registry",
+            "DetectionMethod": "VersionComparison",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{23170F69-40C1-2702-2201-000001000000}",
+            "ValueName": "DisplayVersion",
+            "Operator": "greaterThanOrEqual",
+            "Value": "<replaced_by_pipeline>",
+            "Check32BitOn64System": "false"
+        }
+    ],
+    "TenantInformation": {
+        "Name": "tenant.onmicrosoft.com"
+    }
+}

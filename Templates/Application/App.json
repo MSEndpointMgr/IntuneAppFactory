@@ -1,0 +1,69 @@
+{
+    "PackageInformation": {
+        "SetupType": "EXE",
+        "SetupFile": "Deploy-Application.exe",
+        "SourceFolder": "Source",
+        "OutputFolder": "Package",
+        "IconFile": "Icon.png"
+    },
+    "Information": {
+        "DisplayName": "<replaced_by_pipeline>",
+        "AppVersion": "<replaced_by_pipeline>",
+        "Description": "<<ENTER_DESCRIPTION>>",
+        "Publisher": "<replaced_by_pipeline>",
+        "Notes": "<<ENTER_NOTES>>",
+        "Owner": "<<ENTER_OWNER>>"
+    },
+    "Program": {
+        "InstallCommand": "Deploy-Application.exe Install",
+        "UninstallCommand": "Deploy-Application.exe Uninstall",
+        "InstallExperience": "system \\ user",
+        "DeviceRestartBehavior": "suppress \\ force \\ basedOnReturnCode \\ allow"
+    },
+    "RequirementRule": {
+        "MinimumSupportedWindowsRelease": "1809",
+        "Architecture": "All \\ x64 \\ x86"
+    },
+    "CustomRequirementRule": [
+    ],
+    "DetectionRule": [
+        {
+            "Type": "Registry",
+            "DetectionMethod": "VersionComparison",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\123",
+            "ValueName": "DisplayVersion",
+            "Operator": "greaterThanOrEqual",
+            "Value": "<replaced_by_pipeline>",
+            "Check32BitOn64System": "false"
+        },
+        {
+            "Type": "Registry",
+            "DetectionMethod": "Existence",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\123",
+            "ValueName": "<reg_value_name>",
+            "DetectionType": "exists \\ notExists",
+            "Check32BitOn64System": "false \\ true"
+        },
+        {
+            "Type": "MSI",
+            "ProductCode": "<guid>",
+            "ProductVersionOperator": "notConfigured \\ equal \\ notEqual \\ greaterThanOrEqual \\ greaterThan \\ lessThanOrEqual \\ lessThan",
+            "ProductVersion": "1.0.0"
+        },
+        {
+            "Type": "MSI",
+            "ProductCode": "<guid>",
+            "ProductVersionOperator": "notConfigured",
+            "ProductVersion": ""
+        },
+        {
+            "Type": "Script",
+            "ScriptFile": "detection.ps1",
+            "EnforceSignatureCheck": "true \\ false",
+            "RunAs32Bit": "true \\ false"
+        }
+    ],
+    "TenantInformation": {
+        "Name": "<<ENTER_TENANT_NAME>>.onmicrosoft.com"
+    }
+}

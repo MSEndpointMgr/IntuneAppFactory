@@ -1,0 +1,232 @@
+name: IntuneAppFactory
+
+trigger: none
+
+schedules:
+- cron: "0 */6 * * *"
+  displayName: Every 6 hours
+  branches:
+    include:
+    - main
+  always: true
+
+pool:
+  name: '<<POOLNAME>>'
+
+parameters:
+  - name: operationalMode
+    displayName: Select operational mode
+    type: string
+    default: 'Publish'
+    values:
+    - 'Verify'
+    - 'Package'
+    - 'Publish'
+
+variables:
+- group: <<KEY_VAULT_VARS>>
+- group: IntuneAppFactory-Vars
+
+stages:
+# Stage: Test environment
+- stage: test_environment
+  jobs:
+  - job: test_environment
+    timeoutInMinutes: 5
+    steps:
+    - task: PowerShell@2
+      name: write_variables
+      displayName: Write-Variable
+      inputs:
+        filePath: 'Scripts/Write-Variable.ps1'
+    - task: PowerShell@2
+      name: check_template_files
+      displayName: Test-TemplatesFolder
+      inputs:
+        filePath: 'Scripts/Test-TemplatesFolder.ps1'   
+# Stage: Prepare environment
+- stage: prepare_environment
+  dependsOn:
+  - test_environment
+  condition: and(succeeded(), eq(dependencies.test_environment.outputs['test_environment.check_template_files.shouldrun'], 'true'))
+  jobs: 
+  - job: prepare_environment
+    timeoutInMinutes: 15
+    steps: 
+    - task: PowerShell@2
+      name: install_modules
+      displayName: Install-Modules
+      inputs:
+        filePath: 'Scripts/Install-Modules.ps1'
+    - task: PowerShell@2
+      name: cleanup_folders
+      displayName: Remove-Files
+      inputs:
+        filePath: 'Scripts/Remove-Files.ps1'
+# Stage: 
+# - Description: Check that all onboarded apps are properly configured, have the required files necessary for the pipeline to successfully publish the app in Intune
+# - Input file required: N/A 
+# - Output file created: AppsProcessList.json
+- stage: check_app_files
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  condition: and(succeeded(), or(eq('${{ parameters.operationalMode }}', 'Verify'), eq('${{ parameters.operationalMode }}', 'Package'), eq('${{ parameters.operationalMode }}', 'Publish')))
+  jobs:
+  - job: check_app_files
+    timeoutInMinutes: 15
+    steps:
+    - task: PowerShell@2
+      name: test_app_files
+      displayName: Test-AppFiles
+      inputs:
+        filePath: 'Scripts/Test-AppFiles.ps1'
+        arguments: -ConnectionString $(SA-IntuneAppFactoryApps-AccessKey)
+    - task: PublishBuildArtifacts@1
+      name: publish_artifacts
+      inputs:
+        pathToPublish: $(Build.BinariesDirectory)
+        artifactName: AppsProcessList
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: Check for new apps eligible to be processed by pipeline
+# - Input file required: AppsProcessList.json 
+# - Output file created: AppsDownloadList.json
+- stage: check_new_app_version
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  condition: and(succeeded(), eq(dependencies.check_app_files.outputs['check_app_files.test_app_files.shouldrun'], 'true'), or(eq('${{ parameters.operationalMode }}', 'Package'), eq('${{ parameters.operationalMode }}', 'Publish')))
+  jobs:
+  - job: check_new_app_version
+    timeoutInMinutes: 30
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsProcessList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: PowerShell@2
+      name: test_app_list
+      displayName: Test-AppList
+      inputs:
+        filePath: 'Scripts/Test-AppList.ps1'
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactoryApps-AccessKey)
+    - task: PublishBuildArtifacts@1
+      name: publish_artifacts
+      inputs:
+        pathToPublish: $(Build.BinariesDirectory)
+        artifactName: AppsDownloadList
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: Download new apps eligible to be processed by pipeline
+# - Input file required: AppsDownloadList.json 
+# - Output file created: AppsPrepareList.json
+- stage: download_new_apps
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  - check_new_app_version
+  condition: and(succeeded(), eq(dependencies.check_new_app_version.outputs['check_new_app_version.test_app_list.shouldrun'], 'true'), or(eq('${{ parameters.operationalMode }}', 'Package'), eq('${{ parameters.operationalMode }}', 'Publish')))
+  jobs:
+  - job: download_new_apps
+    timeoutInMinutes: 120
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsDownloadList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'    
+    - task: PowerShell@2
+      name: save_installer
+      displayName: Save-Installer
+      inputs:
+        filePath: 'Scripts/Save-Installer.ps1'
+    - task: PublishBuildArtifacts@1
+      name: publish_artifacts
+      inputs:
+        pathToPublish: $(Build.BinariesDirectory)
+        artifactName: AppsPrepareList
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: Prepare apps by creating packaging folder, copy framework and setup files
+# - Input file required: AppsPrepareList.json 
+# - Output file created: AppsPublishList.json
+- stage: prepare_app_files
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  - check_new_app_version
+  - download_new_apps
+  condition: and(succeeded(), eq(dependencies.download_new_apps.outputs['download_new_apps.save_installer.shouldrun'], 'true'), or(eq('${{ parameters.operationalMode }}', 'Package'), eq('${{ parameters.operationalMode }}', 'Publish')))
+  jobs:
+  - job: prepare_app_package_folder
+    timeoutInMinutes: 60
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsPrepareList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: PowerShell@2
+      name: create_package_folder
+      displayName: Prepare-AppPackageFolder
+      inputs:
+        filePath: 'Scripts/Prepare-AppPackageFolder.ps1'
+    - task: PublishBuildArtifacts@1
+      name: publish_artifacts
+      inputs:
+        pathToPublish: $(Build.BinariesDirectory)
+        artifactName: AppsPublishList
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: Invoke IntuneWin32AppPackager framework script to package and publish new apps to Intune
+# - Input file required: AppsPublishList.json 
+# - Output file created: N/A
+- stage: publish_apps
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  - check_new_app_version
+  - download_new_apps
+  - prepare_app_files
+  condition: and(succeeded(), eq(dependencies.prepare_app_files.outputs['prepare_app_package_folder.create_package_folder.shouldrun'], 'true'), eq('${{ parameters.operationalMode }}', 'Publish'))
+  jobs:
+  - job: publish_apps
+    timeoutInMinutes: 120
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsPublishList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: PowerShell@2
+      name: new_app
+      displayName: New-Win32App
+      inputs:
+        filePath: 'Scripts/New-Win32App.ps1'
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret)      
