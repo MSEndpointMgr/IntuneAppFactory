@@ -147,7 +147,7 @@ Try {
 		## ***********************<PERFORM INSTALLATION TASK HERE>********************
 
 		## SAMPLE: EXE
-		$exeInstall = "setup_notepad.exe"
+		$exeInstall = "###SETUPFILENAME###"
 		$exeInstallParams = "/S"
 		Execute-Process -Path "$($dirFiles)\$($exeInstall)" -Parameters "$($exeInstallParams)"
 

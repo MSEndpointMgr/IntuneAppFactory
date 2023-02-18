@@ -7,11 +7,12 @@
         "IconFile": "Icon.png"
     },
     "Information": {
-        "DisplayName": "",
-        "AppVersion": "",
+        "DisplayName": "<replaced_by_pipeline>",
+        "AppVersion": "<replaced_by_pipeline>",
         "Description": "Install Notepad++",
-        "Publisher": "",
-        "Notes": ""
+        "Publisher": "<replaced_by_pipeline>",
+        "Notes": "",
+        "Owner": ""
     },
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
@@ -32,7 +33,7 @@
             "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Notepad++",
             "ValueName": "DisplayVersion",
             "Operator": "greaterThanOrEqual",
-            "Value": "",
+            "Value": "<replaced_by_pipeline>",
             "Check32BitOn64System": "false"
         }
     ],
