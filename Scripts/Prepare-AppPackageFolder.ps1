@@ -31,7 +31,7 @@ Process {
     $SourceDirectory = $env:BUILD_SOURCESDIRECTORY
     $FrameworkPath = Join-Path -Path $SourceDirectory -ChildPath "Templates\Framework"
 
-    # Read content from AppsDownloadList.json file created in previous stage and process each application
+    # Read content from AppsPrepareList.json file created in previous stage and process each application
     $AppsPrepareListFileName = "AppsPrepareList.json"
     $AppsPrepareListFilePath = Join-Path -Path (Join-Path -Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY -ChildPath "AppsPrepareList") -ChildPath $AppsPrepareListFileName
     if (Test-Path -Path $AppsPrepareListFilePath) {
@@ -42,7 +42,7 @@ Process {
         Write-Output -InputObject "Reading contents from: $($AppsPrepareListFilePath)"
         $AppsPrepareList = Get-Content -Path $AppsPrepareListFilePath | ConvertFrom-Json
 
-        # Process each application in list and download installer
+        # Process each application in list
         foreach ($App in $AppsPrepareList) {
             Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Initializing"
 
@@ -76,6 +76,8 @@ Process {
             $AppPackageFolderPath = Join-Path -Path $SourceDirectory -ChildPath "Apps\$($App.AppFolderName)"
             $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", "Icon.png")
             foreach ($AppFileName in $AppFileNames) {
+                Write-Output -InputObject "[FILE:$($AppFileName)] - Processing"
+
                 # Define path for current app specific file within app package folder in Apps root folder
                 $AppFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath $AppFileName
 
@@ -116,6 +118,36 @@ Process {
                         $AppFileContent.Information.Publisher = $App.AppPublisher
                         foreach ($DetectionRuleItem in $AppFileContent.DetectionRule) {
                             switch ($DetectionRuleItem.Type) {
+                                "MSI" {
+                                    # Retrieve MSI meta data from setup file
+                                    Write-Output -InputObject "Retrieving MSI meta data"
+                                    $ProductCode = Get-MSIMetaData -Path $AppInstallerPath -Property "ProductCode"
+                                    $ProductCode = ($ProductCode -as [string]).Trim()
+                                    Write-Output -InputObject "MSI meta data value for ProductCode: $($ProductCode)"
+                                    $ProductVersion = Get-MSIMetaData -Path $AppInstallerPath -Property "ProductVersion"
+                                    $ProductVersion = ($ProductVersion -as [string]).Trim()
+                                    Write-Output -InputObject "MSI meta data value for ProductVersion: $($ProductVersion)"
+
+                                    # Update App.json detection rule with MSI meta data for ProductCode
+                                    if ($ProductCode -ne $null) {
+                                        Write-Output -InputObject "Setting DetectionRule.ProductCode to: $($ProductCode)"
+                                        $DetectionRuleItem.ProductCode = $ProductCode
+                                    }
+                                    else {
+                                        Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
+                                        throw "$($MyInvocation.MyCommand): Failed to retrieve MSI meta data value for ProductCode"
+                                    }
+
+                                    # Update App.json detection rule with MSI meta data for ProductVersion
+                                    if ($ProductVersion -ne $null) {
+                                        Write-Output -InputObject "Setting DetectionRule.ProductVersion to: $($ProductVersion)"
+                                        $DetectionRuleItem.ProductVersion = $ProductVersion
+                                    }
+                                    else {
+                                        Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
+                                        throw "$($MyInvocation.MyCommand): Failed to retrieve MSI meta data value for ProductVersion"
+                                    }
+                                }
                                 "Registry" {
                                     if ($DetectionRuleItem.KeyPath -match "(\#{3})PRODUCTCODE(\#{3})") {
                                         Write-Output -InputObject "ProductCode update required in app specific file $($AppFileName)"
@@ -188,6 +220,8 @@ Process {
                         Copy-Item -Path $AppFilePath -Destination $AppFileDestinationPath -Force -Confirm:$false
                     }
                 }
+
+                Write-Output -InputObject "[FILE:$($AppFileName)] - Completed"
             }
 
             # Create Package and Source folders in the app package folder root
@@ -201,6 +235,7 @@ Process {
             $AppListItem = [PSCustomObject]@{
                 "IntuneAppName" = $App.IntuneAppName
                 "AppSetupFileName" = $App.AppSetupFileName
+                "AppSetupVersion" = $App.AppSetupVersion
                 "AppPublishFolderPath" = $AppPublishFolderPath
             }
 
@@ -231,7 +266,7 @@ Process {
         }
     }
     else {
-        Write-Output -InputObject "Failed to locate required $($AppsPrepareListFileName) file in pipeline workspace directory, aborting pipeline"
+        Write-Output -InputObject "Failed to locate required $($AppsPrepareListFileName) file in build artifacts staging directory, aborting pipeline"
         Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
     }
 }

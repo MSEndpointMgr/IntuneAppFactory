@@ -5,9 +5,6 @@
 .DESCRIPTION
     This script processes the AppsPublishList.json manifest file and creates a new Win32 application for each application that should be published.
 
-.PARAMETER Validate
-    Specify to validate manifest file configuration.
-
 .EXAMPLE
     .\New-Win32App.ps1
 
@@ -33,9 +30,113 @@ param (
 
     [parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
-    [string]$ClientSecret
+    [string]$ClientSecret,
+
+    [parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$WorkspaceID,
+
+    [parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$SharedKey
 )
 Process {
+    # Functions
+    function Send-LogAnalyticsPayload {
+        <#
+        .SYNOPSIS
+            Send data to Log Analytics Collector API through a web request.
+            
+        .DESCRIPTION
+            Send data to Log Analytics Collector API through a web request.
+            
+        .PARAMETER WorkspaceID
+            Specify the Log Analytics workspace ID.
+    
+        .PARAMETER SharedKey
+            Specify either the Primary or Secondary Key for the Log Analytics workspace.
+    
+        .PARAMETER Body
+            Specify a JSON representation of the data objects.
+    
+        .PARAMETER LogType
+            Specify the name of the custom log in the Log Analytics workspace.
+    
+        .PARAMETER TimeGenerated
+            Specify a custom date time string to be used as TimeGenerated value instead of the default.
+            
+        .NOTES
+            Author:      Nickolaj Andersen
+            Contact:     @NickolajA
+            Created:     2021-04-20
+            Updated:     2021-04-20
+    
+            Version history:
+            1.0.0 - (2021-04-20) Function created
+        #>  
+        param(
+            [parameter(Mandatory = $true, HelpMessage = "Specify the Log Analytics workspace ID.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$WorkspaceID,
+    
+            [parameter(Mandatory = $true, HelpMessage = "Specify either the Primary or Secondary Key for the Log Analytics workspace.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$SharedKey,
+    
+            [parameter(Mandatory = $true, HelpMessage = "Specify a JSON representation of the data objects.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$Body,
+    
+            [parameter(Mandatory = $true, HelpMessage = "Specify the name of the custom log in the Log Analytics workspace.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$LogType,
+    
+            [parameter(Mandatory = $false, HelpMessage = "Specify a custom date time string to be used as TimeGenerated value instead of the default.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$TimeGenerated = [string]::Empty
+        )
+        Process {
+            # Construct header string with RFC1123 date format for authorization
+            $RFC1123Date = [DateTime]::UtcNow.ToString("r")
+            $Header = -join@("x-ms-date:", $RFC1123Date)
+    
+            # Convert authorization string to bytes
+            $ComputeHashBytes = [Text.Encoding]::UTF8.GetBytes(-join@("POST", "`n", $Body.Length, "`n", "application/json", "`n", $Header, "`n", "/api/logs"))
+    
+            # Construct cryptographic SHA256 object
+            $SHA256 = New-Object -TypeName "System.Security.Cryptography.HMACSHA256"
+            $SHA256.Key = [System.Convert]::FromBase64String($SharedKey)
+    
+            # Get encoded hash by calculated hash from bytes
+            $EncodedHash = [System.Convert]::ToBase64String($SHA256.ComputeHash($ComputeHashBytes))
+    
+            # Construct authorization string
+            $Authorization = 'SharedKey {0}:{1}' -f $WorkspaceID, $EncodedHash
+    
+            # Construct Uri for API call
+            $Uri = -join@("https://", $WorkspaceID, ".ods.opinsights.azure.com/", "api/logs", "?api-version=2016-04-01")
+    
+            # Construct headers table
+            $HeaderTable = @{
+                "Authorization" = $Authorization
+                "Log-Type" = $LogType
+                "x-ms-date" = $RFC1123Date
+                "time-generated-field" = $TimeGenerated
+            }
+    
+            # Invoke web request
+            $WebResponse = Invoke-WebRequest -Uri $Uri -Method "POST" -ContentType "application/json" -Headers $HeaderTable -Body $Body -UseBasicParsing
+    
+            $ReturnValue = [PSCustomObject]@{
+                StatusCode = $WebResponse.StatusCode
+                PayloadSizeKB = ($Body.Length/1024).ToString("#.#")
+            }
+            
+            # Handle return value
+            return $ReturnValue
+        }
+    }
+
     # Intitialize variables
     $AppsPublishListFileName = "AppsPublishList.json"
     $AppsPublishListFilePath = Join-Path -Path (Join-Path -Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY -ChildPath "AppsPublishList") -ChildPath $AppsPublishListFileName
@@ -470,12 +571,21 @@ Process {
             Write-Output -InputObject "Creating Win32 application"
             $Win32App = Add-IntuneWin32App @Win32AppArgs
 
+            # Send Log Analytics payload with published app details
+            Write-Output -InputObject "Sending Log Analytics payload with published app details"
+            $PayloadBody = @{
+                AppName = $AppData.Information.DisplayName
+                AppVersion = $AppData.Information.AppVersion
+                AppPublisher = $AppData.Information.Publisher
+            }
+            Send-LogAnalyticsPayload -WorkspaceID $WorkspaceID -SharedKey $SharedKey -Body ($PayloadBody | ConvertTo-Json) -LogType "IntuneAppFactory"
+
             # Handle current application output completed message
             Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Completed"
         }
     }
     else {
-        Write-Output -InputObject "Failed to locate required $($AppsPublishListFileName) file in pipeline workspace directory, aborting pipeline"
+        Write-Output -InputObject "Failed to locate required $($AppsPublishListFileName) file in build artifacts staging directory, aborting pipeline"
         Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
     }
 }

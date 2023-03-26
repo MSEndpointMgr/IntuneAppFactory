@@ -135,7 +135,7 @@ Process {
         }
     }
     else {
-        Write-Output -InputObject "Failed to locate required $($AppsDownloadListFileName) file in pipeline workspace directory, aborting pipeline"
+        Write-Output -InputObject "Failed to locate required $($AppsDownloadListFileName) file in build artifacts staging directory, aborting pipeline"
         Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
     }
 }

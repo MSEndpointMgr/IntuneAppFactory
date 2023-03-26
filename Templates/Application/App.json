@@ -46,15 +46,14 @@
         },
         {
             "Type": "MSI",
-            "ProductCode": "<guid>",
+            "ProductCode": "<replaced_by_pipeline>",
             "ProductVersionOperator": "notConfigured \\ equal \\ notEqual \\ greaterThanOrEqual \\ greaterThan \\ lessThanOrEqual \\ lessThan",
-            "ProductVersion": "1.0.0"
+            "ProductVersion": "<replaced_by_pipeline>"
         },
         {
             "Type": "MSI",
-            "ProductCode": "<guid>",
-            "ProductVersionOperator": "notConfigured",
-            "ProductVersion": ""
+            "ProductCode": "<replaced_by_pipeline>",
+            "ProductVersionOperator": "notConfigured"
         },
         {
             "Type": "Script",

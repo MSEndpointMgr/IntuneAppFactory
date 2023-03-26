@@ -7,7 +7,7 @@ The words of which the initial letter is capitalized have meanings defined under
 ## Definitions
 For the purposes of this Disclaimer:
 
-- Company (referred to as either "the Company", "We", "Us" or "Our" in this Disclaimer) refers to IntuneAppFactory.
+- Company (referred to as either "the Company", "We", "Us" or "Our" in this Disclaimer) refers to MSEndpointMgr.
 - Service refers to the Application.
 - You means the individual accessing the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.
 - Application means the software program provided by the Company downloaded by You on any electronic device named IntuneAppFactory.

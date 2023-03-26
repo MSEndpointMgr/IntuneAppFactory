@@ -22,13 +22,23 @@ parameters:
     - 'Verify'
     - 'Package'
     - 'Publish'
+  - name: archiveMode
+    displayName: Archive published apps
+    type: string
+    default: 'Yes'
+    values:
+    - 'Yes'
+    - 'No'
 
 variables:
 - group: <<KEY_VAULT_VARS>>
 - group: IntuneAppFactory-Vars
 
+# Stage:
+# - Description: Test environment for required files
+# - Input file required: None 
+# - Output file created: None
 stages:
-# Stage: Test environment
 - stage: test_environment
   jobs:
   - job: test_environment
@@ -44,7 +54,10 @@ stages:
       displayName: Test-TemplatesFolder
       inputs:
         filePath: 'Scripts/Test-TemplatesFolder.ps1'   
-# Stage: Prepare environment
+# Stage: 
+# - Description: Install all required modules and remove files from previous pipeline executions
+# - Input file required: None 
+# - Output file created: None
 - stage: prepare_environment
   dependsOn:
   - test_environment
@@ -65,7 +78,7 @@ stages:
         filePath: 'Scripts/Remove-Files.ps1'
 # Stage: 
 # - Description: Check that all onboarded apps are properly configured, have the required files necessary for the pipeline to successfully publish the app in Intune
-# - Input file required: N/A 
+# - Input file required: None
 # - Output file created: AppsProcessList.json
 - stage: check_app_files
   dependsOn:
@@ -92,7 +105,8 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: Check for new apps eligible to be processed by pipeline
+# Stage: 
+# - Description: Check for new apps eligible to be processed by pipeline
 # - Input file required: AppsProcessList.json 
 # - Output file created: AppsDownloadList.json
 - stage: check_new_app_version
@@ -128,7 +142,8 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: Download new apps eligible to be processed by pipeline
+# Stage: 
+# - Description: Download new apps eligible to be processed by pipeline
 # - Input file required: AppsDownloadList.json 
 # - Output file created: AppsPrepareList.json
 - stage: download_new_apps
@@ -164,7 +179,8 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: Prepare apps by creating packaging folder, copy framework and setup files
+# Stage: 
+# - Description: Prepare apps by creating packaging folder, copy framework and setup files
 # - Input file required: AppsPrepareList.json 
 # - Output file created: AppsPublishList.json
 - stage: prepare_app_files
@@ -201,9 +217,45 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: Invoke IntuneWin32AppPackager framework script to package and publish new apps to Intune
+# Stage:
+# Description: Upload all apps that will be published to Intune to storage account for archival process
 # - Input file required: AppsPublishList.json 
-# - Output file created: N/A
+# - Output file created: None
+- stage: archive_apps
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  - check_new_app_version
+  - download_new_apps
+  - prepare_app_files
+  condition: and(succeeded(), eq(dependencies.prepare_app_files.outputs['prepare_app_package_folder.create_package_folder.shouldrun'], 'true'), eq('${{ parameters.archiveMode }}', 'Yes'), or(eq('${{ parameters.operationalMode }}', 'Package'), eq('${{ parameters.operationalMode }}', 'Publish')))
+  jobs:
+  - job: archive_apps
+    timeoutInMinutes: 60
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsPublishList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+    - task: PowerShell@2
+      name: upload_app_archive
+      displayName: New-AppArchive
+      inputs:
+        filePath: 'Scripts/New-AppArchive.ps1'
+        arguments: -StorageAccountName $(ArchiveStorageAccountName) -ContainerName $(ArchiveContainerName) -StorageAccountKey $(SA-IntuneAppFactoryApps-AccessKey)
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: 
+# - Description: Invoke IntuneWin32AppPackager framework script to package and publish new apps to Intune
+# - Input file required: AppsPublishList.json 
+# - Output file created: None
 - stage: publish_apps
   dependsOn:
   - test_environment
@@ -212,6 +264,7 @@ stages:
   - check_new_app_version
   - download_new_apps
   - prepare_app_files
+  - archive_apps
   condition: and(succeeded(), eq(dependencies.prepare_app_files.outputs['prepare_app_package_folder.create_package_folder.shouldrun'], 'true'), eq('${{ parameters.operationalMode }}', 'Publish'))
   jobs:
   - job: publish_apps
@@ -229,4 +282,4 @@ stages:
       displayName: New-Win32App
       inputs:
         filePath: 'Scripts/New-Win32App.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret)      
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LA-IntuneAppFactory-SharedKey)
