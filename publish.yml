@@ -25,7 +25,7 @@ parameters:
   - name: archiveMode
     displayName: Archive published apps
     type: string
-    default: 'Yes'
+    default: 'No'
     values:
     - 'Yes'
     - 'No'
