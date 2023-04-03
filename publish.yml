@@ -31,8 +31,8 @@ parameters:
     - 'No'
 
 variables:
-- group: <<KEY_VAULT_VARS>>
-- group: IntuneAppFactory-Vars
+- group: Tenant
+- group: KeyVault
 
 # Stage:
 # - Description: Test environment for required files

@@ -82,7 +82,7 @@ Process {
             $StorageAccountContext = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey -ErrorAction "Stop"
     
             try {
-                $Content = Set-AzStorageBlobContent -File $FilePath -Container $ContainerName -Context $StorageAccountContext -ErrorAction "Stop"
+                $Content = Set-AzStorageBlobContent -File $FilePath -Container $ContainerName -Context $StorageAccountContext -Force -ErrorAction "Stop"
     
                 # Handle return value
                 return $Content
