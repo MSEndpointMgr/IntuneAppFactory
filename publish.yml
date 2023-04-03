@@ -31,10 +31,10 @@ parameters:
     - 'No'
 
 variables:
-- group: Tenant
+- group: IntuneAppFactory
 - group: KeyVault
 
-# Stage:
+# Stage: 1
 # - Description: Test environment for required files
 # - Input file required: None 
 # - Output file created: None
@@ -53,8 +53,8 @@ stages:
       name: check_template_files
       displayName: Test-TemplatesFolder
       inputs:
-        filePath: 'Scripts/Test-TemplatesFolder.ps1'   
-# Stage: 
+        filePath: 'Scripts/Test-TemplatesFolder.ps1'
+# Stage: 2
 # - Description: Install all required modules and remove files from previous pipeline executions
 # - Input file required: None 
 # - Output file created: None
@@ -76,7 +76,7 @@ stages:
       displayName: Remove-Files
       inputs:
         filePath: 'Scripts/Remove-Files.ps1'
-# Stage: 
+# Stage: 3
 # - Description: Check that all onboarded apps are properly configured, have the required files necessary for the pipeline to successfully publish the app in Intune
 # - Input file required: None
 # - Output file created: AppsProcessList.json
@@ -94,7 +94,7 @@ stages:
       displayName: Test-AppFiles
       inputs:
         filePath: 'Scripts/Test-AppFiles.ps1'
-        arguments: -ConnectionString $(SA-IntuneAppFactoryApps-AccessKey)
+        arguments: -ConnectionString $(SA-IntuneAppFactory-PrimaryKey)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -105,7 +105,7 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: 
+# Stage: 4
 # - Description: Check for new apps eligible to be processed by pipeline
 # - Input file required: AppsProcessList.json 
 # - Output file created: AppsDownloadList.json
@@ -131,7 +131,7 @@ stages:
       displayName: Test-AppList
       inputs:
         filePath: 'Scripts/Test-AppList.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactoryApps-AccessKey)
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactory-PrimaryKey)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -142,7 +142,7 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: 
+# Stage: 5
 # - Description: Download new apps eligible to be processed by pipeline
 # - Input file required: AppsDownloadList.json 
 # - Output file created: AppsPrepareList.json
@@ -179,7 +179,7 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: 
+# Stage: 6
 # - Description: Prepare apps by creating packaging folder, copy framework and setup files
 # - Input file required: AppsPrepareList.json 
 # - Output file created: AppsPublishList.json
@@ -217,7 +217,7 @@ stages:
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage:
+# Stage: 7
 # Description: Upload all apps that will be published to Intune to storage account for archival process
 # - Input file required: AppsPublishList.json 
 # - Output file created: None
@@ -246,13 +246,13 @@ stages:
       displayName: New-AppArchive
       inputs:
         filePath: 'Scripts/New-AppArchive.ps1'
-        arguments: -StorageAccountName $(ArchiveStorageAccountName) -ContainerName $(ArchiveContainerName) -StorageAccountKey $(SA-IntuneAppFactoryApps-AccessKey)
+        arguments: -StorageAccountName $(ArchiveStorageAccountName) -ContainerName $(ArchiveContainerName) -StorageAccountKey $(SA-IntuneAppFactory-AccessKey)
     - task: DeleteFiles@1
       name: cleanup_artifacts
       inputs:
         SourceFolder: '$(Build.BinariesDirectory)'
         Contents: '**'
-# Stage: 
+# Stage: 8
 # - Description: Invoke IntuneWin32AppPackager framework script to package and publish new apps to Intune
 # - Input file required: AppsPublishList.json 
 # - Output file created: None
@@ -282,4 +282,4 @@ stages:
       displayName: New-Win32App
       inputs:
         filePath: 'Scripts/New-Win32App.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LA-IntuneAppFactory-SharedKey)
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LA-IntuneAppFactory-PrimaryKey)
