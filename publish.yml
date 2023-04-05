@@ -94,7 +94,7 @@ stages:
       displayName: Test-AppFiles
       inputs:
         filePath: 'Scripts/Test-AppFiles.ps1'
-        arguments: -ConnectionString $(SA-IntuneAppFactory-PrimaryKey)
+        arguments: -ConnectionString $(SA-IntuneAppFactory-AccessKey)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -131,7 +131,7 @@ stages:
       displayName: Test-AppList
       inputs:
         filePath: 'Scripts/Test-AppList.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactory-PrimaryKey)
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactory-AccessKey)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
