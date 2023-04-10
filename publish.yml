@@ -264,7 +264,6 @@ stages:
   - check_new_app_version
   - download_new_apps
   - prepare_app_files
-  - archive_apps
   condition: and(succeeded(), eq(dependencies.prepare_app_files.outputs['prepare_app_package_folder.create_package_folder.shouldrun'], 'true'), eq('${{ parameters.operationalMode }}', 'Publish'))
   jobs:
   - job: publish_apps
