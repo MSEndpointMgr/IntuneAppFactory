@@ -9,20 +9,20 @@
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
         "AppVersion": "<replaced_by_pipeline>",
-        "Description": "<<ENTER_DESCRIPTION>>",
+        "Description": "<<ENTER_VALUE:[custom_text]>>",
         "Publisher": "<replaced_by_pipeline>",
-        "Notes": "<<ENTER_NOTES>>",
-        "Owner": "<<ENTER_OWNER>>"
+        "Notes": "<<ENTER_VALUE:[custom_text]>>",
+        "Owner": "<<ENTER_VALUE:[custom_text]>>"
     },
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
         "UninstallCommand": "Deploy-Application.exe Uninstall",
-        "InstallExperience": "system \\ user",
-        "DeviceRestartBehavior": "suppress \\ force \\ basedOnReturnCode \\ allow"
+        "InstallExperience": "<<SELECT_VALUE:[system, user]>>",
+        "DeviceRestartBehavior": "<<SELECT_VALUE:[suppress, force, basedOnReturnCode, allow]>>"
     },
     "RequirementRule": {
-        "MinimumSupportedWindowsRelease": "1809",
-        "Architecture": "All \\ x64 \\ x86"
+        "MinimumSupportedWindowsRelease": "21H2",
+        "Architecture": "<<SELECT_VALUE:[All, x64, x86]>>"
     },
     "CustomRequirementRule": [
     ],
@@ -30,24 +30,24 @@
         {
             "Type": "Registry",
             "DetectionMethod": "VersionComparison",
-            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\123",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\<<ENTER_VALUE[reg_key]>>",
             "ValueName": "DisplayVersion",
             "Operator": "greaterThanOrEqual",
             "Value": "<replaced_by_pipeline>",
-            "Check32BitOn64System": "false"
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
         },
         {
             "Type": "Registry",
             "DetectionMethod": "Existence",
-            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\123",
-            "ValueName": "<reg_value_name>",
-            "DetectionType": "exists \\ notExists",
-            "Check32BitOn64System": "false \\ true"
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\<<ENTER_VALUE[reg_key]>>",
+            "ValueName": "<<ENTER_VALUE:[reg_value_name]>>",
+            "DetectionType": "<<SELECT_VALUE:[exists, notExists]>>",
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
         },
         {
             "Type": "MSI",
             "ProductCode": "<replaced_by_pipeline>",
-            "ProductVersionOperator": "notConfigured \\ equal \\ notEqual \\ greaterThanOrEqual \\ greaterThan \\ lessThanOrEqual \\ lessThan",
+            "ProductVersionOperator": "<<SELECT_VALUE:[notConfigured, equal, notEqual, greaterThanOrEqual, greaterThan, lessThanOrEqual, lessThan]>>",
             "ProductVersion": "<replaced_by_pipeline>"
         },
         {
@@ -58,11 +58,8 @@
         {
             "Type": "Script",
             "ScriptFile": "detection.ps1",
-            "EnforceSignatureCheck": "true \\ false",
-            "RunAs32Bit": "true \\ false"
+            "EnforceSignatureCheck": "<<SELECT_VALUE:[false, true]>>",
+            "RunAs32Bit": "<<SELECT_VALUE:[false, true]>>"
         }
-    ],
-    "TenantInformation": {
-        "Name": "<<ENTER_TENANT_NAME>>.onmicrosoft.com"
-    }
+    ]
 }
