@@ -21,7 +21,7 @@
         "DeviceRestartBehavior": "suppress"
     },
     "RequirementRule": {
-        "MinimumSupportedWindowsRelease": "1809",
+        "MinimumSupportedWindowsRelease": "21H2",
         "Architecture": "x64"
     },
     "CustomRequirementRule": [
@@ -36,8 +36,5 @@
             "Value": "<replaced_by_pipeline>",
             "Check32BitOn64System": "false"
         }
-    ],
-    "TenantInformation": {
-        "Name": "tenantname.onmicrosoft.com"
-    }
+    ]
 }
