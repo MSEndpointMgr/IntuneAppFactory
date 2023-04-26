@@ -38,8 +38,25 @@
         },
         {
             "Type": "Registry",
+            "DetectionMethod": "VersionComparison",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\###PRODUCTCODE###",
+            "ValueName": "DisplayVersion",
+            "Operator": "greaterThanOrEqual",
+            "Value": "<replaced_by_pipeline>",
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
+        },
+        {
+            "Type": "Registry",
             "DetectionMethod": "Existence",
             "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\<<ENTER_VALUE[reg_key]>>",
+            "ValueName": "<<ENTER_VALUE:[reg_value_name]>>",
+            "DetectionType": "<<SELECT_VALUE:[exists, notExists]>>",
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
+        },
+        {
+            "Type": "Registry",
+            "DetectionMethod": "Existence",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\###PRODUCTCODE###",
             "ValueName": "<<ENTER_VALUE:[reg_value_name]>>",
             "DetectionType": "<<SELECT_VALUE:[exists, notExists]>>",
             "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
