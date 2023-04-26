@@ -103,7 +103,7 @@ Process {
                     "AppSetupVersion" = $App.AppSetupVersion
                 }
 
-                # Add to list of applications to be published
+                # Add to list of applications to be prepared for publishing
                 $AppsPrepareList.Add($AppListItem) | Out-Null
 
                 # Handle current application output completed message
@@ -111,6 +111,7 @@ Process {
             }
             catch [System.Exception] {
                 Write-Warning -Message "Failed to prepare download content for application: $($App.IntuneAppName)"
+                Write-Warning -Message "Error message: $($_.Exception.Message)"
                 Write-Warning -Message "Application will not be added to app prepare list"
             }
         }
@@ -124,7 +125,7 @@ Process {
         }
 
         # Handle next stage execution or not if no new applications are to be published
-        if ($AppsDownloadList.Count -eq 0) {
+        if ($AppsPrepareList.Count -eq 0) {
             # Don't allow pipeline to continue
             Write-Output -InputObject "No new applications to be prepared, aborting pipeline"
             Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
