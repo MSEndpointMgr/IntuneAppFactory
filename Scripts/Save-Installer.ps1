@@ -50,7 +50,7 @@ Process {
                     $NewPath = New-Item -Path $Path -ItemType "Container" -ErrorAction "Stop"
                 }
                 catch [System.Exception] {
-                    throw "$($MyInvocation.MyCommand): Failed to create '$($Path)' with error message: $($_.Exception.Message)"
+                    Write-Warning -Message "Failed to create '$($Path)' with error message: $($_.Exception.Message)"
                 }
             }
 
@@ -60,7 +60,7 @@ Process {
                 Invoke-WebRequest -Uri $URI -OutFile $OutFilePath -UseBasicParsing -ErrorAction "Stop"
             }
             catch [System.Exception] {
-                throw "$($MyInvocation.MyCommand): Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
+                Write-Warning -Message "Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
             }
         }
     }
@@ -91,20 +91,29 @@ Process {
                 # Save installer
                 Write-Output -InputObject "Attempting to download '$($App.AppSetupFileName)' from: $($App.URI)"
                 Save-InstallerFile -URI $App.URI -Path $AppSetupFolderPath -Name $App.AppSetupFileName -ErrorAction "Stop"
-                Write-Output -InputObject "Successfully downloaded installer"
 
-                # Construct new application custom object with required properties
-                $AppListItem = [PSCustomObject]@{
-                    "IntuneAppName" = $App.IntuneAppName
-                    "AppPublisher" = $App.AppPublisher
-                    "AppFolderName" = $App.AppFolderName
-                    "AppSetupFileName" = $App.AppSetupFileName
-                    "AppSetupFolderPath" = $AppSetupFolderPath
-                    "AppSetupVersion" = $App.AppSetupVersion
+                # Validate setup installer was successfully downloaded
+                $AppSetupFilePath = Join-Path -Path $AppSetupFolderPath -ChildPath $App.AppSetupFileName
+                if (Test-Path -Path $AppSetupFilePath) {
+                    Write-Output -InputObject "Successfully downloaded installer"
+
+                    # Construct new application custom object with required properties
+                    $AppListItem = [PSCustomObject]@{
+                        "IntuneAppName" = $App.IntuneAppName
+                        "AppPublisher" = $App.AppPublisher
+                        "AppFolderName" = $App.AppFolderName
+                        "AppSetupFileName" = $App.AppSetupFileName
+                        "AppSetupFolderPath" = $AppSetupFolderPath
+                        "AppSetupVersion" = $App.AppSetupVersion
+                    }
+
+                    # Add to list of applications to be prepared for publishing
+                    $AppsPrepareList.Add($AppListItem) | Out-Null
                 }
-
-                # Add to list of applications to be prepared for publishing
-                $AppsPrepareList.Add($AppListItem) | Out-Null
+                else {
+                    Write-Warning -Message "Could not detect downloaded setup installer"
+                    Write-Warning -Message "Application will not be added to app prepare list"
+                }
 
                 # Handle current application output completed message
                 Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Completed"
