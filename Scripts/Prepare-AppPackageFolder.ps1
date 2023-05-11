@@ -18,10 +18,11 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2022-04-04
+    Updated:     2023-05-11
 
     Version history:
     1.0.0 - (2022-04-04) Script created
+    1.0.1 - (2023-05-11) Fixed a bug where Script detection rule was attempting to read the folder instead of the file when amended version info into the script file
 #>
 Process {
     # Intitialize variables
@@ -194,9 +195,9 @@ Process {
                                     Copy-Item -Path $AppDetectionScriptFile -Destination $AppDetectionScriptFileDestinationPath -Force -Confirm:$false
 
                                     # Read detection script file and update hardcoded variables with specific variable value from app details
-                                    $AppDetectionScriptFileContent = Get-Content -Path $AppPublishScriptsFolderPath
                                     Write-Output -InputObject "Reading content of detection script file $($AppFileContent.DetectionRule.ScriptFile)"
                                     Write-Output -InputObject "File path: $($AppPublishScriptsFolderPath)"
+                                    $AppDetectionScriptFileContent = Get-Content -Path $AppDetectionScriptFileDestinationPath
                                     Write-Output -InputObject "Setting detection version to: $($App.AppSetupVersion)"
                                     $AppDetectionScriptFileContent = $AppDetectionScriptFileContent -replace "###VERSION###", $App.AppSetupVersion
 
