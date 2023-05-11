@@ -13,11 +13,12 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-03-29
-    Updated:     2022-10-26
+    Updated:     2023-05-11
 
     Version history:
     1.0.0 - (2022-03-29) Script created
     1.1.0 - (2022-10-26) Added support for Azure Storage Account source
+    1.1.1 - (2023-05-11) Updated Get-WindowsPackageManagerItem function with changes made in 'show' command output
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -104,7 +105,7 @@ Process {
                 $PSObject = [PSCustomObject]@{
                     "Id" = $AppId
                     "Version" = ($WinGetStream | Where-Object { $PSItem -match "^Version\:.*(?<AppVersion>(\d+(\.\d+){0,3}))$" }).Replace("Version:", "").Trim()
-                    "URI" = ($WinGetStream | Where-Object { $PSItem -match "^.*Download Url\:.*$" }).Replace("Download Url:", "").Trim()
+                    "URI" = (($WinGetStream | Where-Object { $PSItem -match "^.*(Download|Installer) Url\:.*$" }) -replace "(Download|Installer) Url:", "").Trim()
                 }
         
                 # Handle return value
