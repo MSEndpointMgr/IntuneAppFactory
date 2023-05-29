@@ -18,7 +18,8 @@
         "InstallCommand": "Deploy-Application.exe Install",
         "UninstallCommand": "Deploy-Application.exe Uninstall",
         "InstallExperience": "<<SELECT_VALUE:[system, user]>>",
-        "DeviceRestartBehavior": "<<SELECT_VALUE:[suppress, force, basedOnReturnCode, allow]>>"
+        "DeviceRestartBehavior": "<<SELECT_VALUE:[suppress, force, basedOnReturnCode, allow]>>",
+        "AllowAvailableUninstall": "<<SELECT_VALUE:[true, false]>>"
     },
     "RequirementRule": {
         "MinimumSupportedWindowsRelease": "<<SELECT_VALUE:[W10_1607, W10_1703, W10_1709, W10_1809, W10_1909, W10_2004, W10_20H2, W10_21H1, W10_21H2, W10_22H2, W11_21H2, W11_22H2]>>",
