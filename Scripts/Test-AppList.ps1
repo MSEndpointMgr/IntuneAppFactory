@@ -13,12 +13,11 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-03-29
-    Updated:     2023-05-11
+    Updated:     2022-10-26
 
     Version history:
     1.0.0 - (2022-03-29) Script created
     1.1.0 - (2022-10-26) Added support for Azure Storage Account source
-    1.1.1 - (2023-05-11) Updated Get-WindowsPackageManagerItem function with changes made in 'show' command output
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -65,6 +64,9 @@ Process {
         }
         if ($FilterOptions.Type) {
             $FilterList.Add("`$PSItem.Type -eq ""$($FilterOptions.Type)""") | Out-Null
+        }
+        if ($FilterOptions.InstallerType) {
+            $FilterList.Add("`$PSItem.InstallerType -eq ""$($FilterOptions.InstallerType)""") | Out-Null
         }
     
         # Construct script block from filter list array
@@ -158,7 +160,7 @@ Process {
             [parameter(Mandatory = $true, HelpMessage = "Specify the storage account name.")]
             [ValidateNotNullOrEmpty()]
             [string]$StorageAccountName,
-
+    
             [parameter(Mandatory = $true, HelpMessage = "Specify the storage account container name.")]
             [ValidateNotNullOrEmpty()]
             [string]$ContainerName
@@ -166,31 +168,43 @@ Process {
         process {
             # Create storage account context using access key
             $StorageAccountContext = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountAccessKey
-
+    
             # Retrieve all storage account blob items in container
             $BlobItems = Get-AzureBlobContent -StorageAccountContext $StorageAccountContext -ContainerName $ContainerName
             if ($BlobItems -ne $null) {
                 # Read the contents of the latest.json file
                 $LatestFile = $BlobItems | Where-Object { $PSItem.Name -like "latest.json" }
                 if ($LatestFile -ne $null) {
+                    # Construct temporary latest.json file destination
+                    $LatestSetupFileDestination = Join-Path -Path $env:PIPELINE_WORKSPACE -ChildPath (Join-Path -Path "LatestFiles" -ChildPath $ContainerName)
+                    if (-not(Test-Path -Path $LatestSetupFileDestination)) {
+                        New-Item -Path $LatestSetupFileDestination -ItemType "Directory" | Out-Null
+                    }
+    
                     # Retrieve the latest.json file content and convert from JSON
-                    $LatestFileUri = -join@($StorageAccountContext.BlobEndPoint, $ContainerName, "/", "latest.json")
-                    $LatestSetupFileDetails = Invoke-WebRequest -Uri $LatestFileUri -UseBasicParsing | Select-Object -ExpandProperty "Content" | ConvertFrom-Json
-
-                    # Get the latest modified setup file
-                    $BlobItem = $BlobItems | Where-Object { (([System.IO.Path]::GetExtension($PSItem.Name)) -match ".msi|.exe|.zip") -and ($PSItem.Name -like $LatestSetupFileDetails.SetupName) } | Sort-Object -Property "LastModified" -Descending | Select-Object -First 1
-                    if ($BlobItem -ne $null) {
-                        # Construct custom object for return value
-                        $PSObject = [PSCustomObject]@{
-                            "Version" = $LatestSetupFileDetails.SetupVersion
-                            "URI" = -join@($StorageAccountContext.BlobEndPoint, $ContainerName, "/", $BlobItem.Name)
+                    $LatestSetupFile = Get-AzStorageBlobContent -Context $StorageAccountContext -Container $ContainerName -Blob "latest.json" -Destination $LatestSetupFileDestination -Force
+                    $LatestSetupFilePath = Join-Path -Path $LatestSetupFileDestination -ChildPath "latest.json"
+                    if (Test-Path -Path $LatestSetupFilePath) {
+                        $LatestSetupFileContent = Get-Content -Path $LatestSetupFilePath | ConvertFrom-Json
+    
+                        # Get the latest modified setup file
+                        $BlobItem = $BlobItems | Where-Object { (([System.IO.Path]::GetExtension($PSItem.Name)) -match ".msi|.exe|.zip") -and ($PSItem.Name -like $LatestSetupFileContent.SetupName) } | Sort-Object -Property "LastModified" -Descending | Select-Object -First 1
+                        if ($BlobItem -ne $null) {
+                            # Construct custom object for return value
+                            $PSObject = [PSCustomObject]@{
+                                "Version" = $LatestSetupFileContent.SetupVersion
+                                "URI" = -join@($StorageAccountContext.BlobEndPoint, $ContainerName, "/", $BlobItem.Name)
+                            }
+            
+                            # Handle return value
+                            return $PSObject
                         }
-        
-                        # Handle return value
-                        return $PSObject
+                        else {
+                            Write-Warning -Message "Could not find blob file in container with name from latest.json: $($LatestSetupFileContent.SetupName)"
+                        }
                     }
                     else {
-                        Write-Warning -Message "Could not find blob file in container with name from latest.json: $($LatestSetupFileDetails.SetupName)"
+                        Write-Warning -Message "Could not locate latest.json file after attempted download from storage account container"
                     }
                 }
                 else {
@@ -317,7 +331,10 @@ Process {
             }
             catch [System.Exception] {
                 Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
-                throw "$($MyInvocation.MyCommand): Failed to retrieve app source details using method '$($App.AppSource)' for app: $($App.IntuneAppName). Error message: $($_.Exception.Message)"
+                Write-Warning -Message "Failed to retrieve app source details using method '$($App.AppSource)' for app: $($App.IntuneAppName). Error message: $($_.Exception.Message)"
+                
+                # Handle current application output completed message
+                Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Skipped"
             }
         }
 

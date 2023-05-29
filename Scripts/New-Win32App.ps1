@@ -566,6 +566,11 @@ Process {
             if (-not([string]::IsNullOrEmpty($AppData.Program.UninstallCommand))) {
                 $Win32AppArgs.Add("UninstallCommandLine", $AppData.Program.UninstallCommand)
             }
+            if (-not([string]::IsNullOrEmpty($AppData.Program.AllowAvailableUninstall))) {
+                if ($AppData.Program.AllowAvailableUninstall -eq $true) {
+                    $Win32AppArgs.Add("AllowAvailableUninstall", $AppData.Program.AllowAvailableUninstall)
+                }
+            }
 
             # Create Win32 app
             Write-Output -InputObject "Creating Win32 application"

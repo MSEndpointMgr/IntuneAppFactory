@@ -18,11 +18,10 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2023-05-11
+    Updated:     2022-04-04
 
     Version history:
     1.0.0 - (2022-04-04) Script created
-    1.0.1 - (2023-05-11) Fixed a bug where Script detection rule was attempting to read the folder instead of the file when amended version info into the script file
 #>
 Process {
     # Intitialize variables
