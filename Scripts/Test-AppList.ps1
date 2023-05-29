@@ -13,11 +13,12 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-03-29
-    Updated:     2022-10-26
+    Updated:     2023-05-29
 
     Version history:
     1.0.0 - (2022-03-29) Script created
-    1.1.0 - (2022-10-26) Added support for Azure Storage Account source
+    1.0.1 - (2022-10-26) Added support for Azure Storage Account source
+    1.0.2 - (2023-05-29) Fixed bugs mention in release notes for Intune App Factory 1.0.1
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (

@@ -13,10 +13,11 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-20
-    Updated:     2022-04-20
+    Updated:     2023-05-29
 
     Version history:
     1.0.0 - (2020-09-26) Script created
+    1.0.1 - (2023-05-29) Fixed bugs mention in release notes for Intune App Factory 1.0.1
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
