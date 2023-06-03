@@ -569,7 +569,7 @@ Process {
             }
             if (-not([string]::IsNullOrEmpty($AppData.Program.AllowAvailableUninstall))) {
                 if ($AppData.Program.AllowAvailableUninstall -eq $true) {
-                    $Win32AppArgs.Add("AllowAvailableUninstall", $AppData.Program.AllowAvailableUninstall)
+                    $Win32AppArgs.Add("AllowAvailableUninstall", $true)
                 }
             }
 
