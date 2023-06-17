@@ -169,6 +169,7 @@ stages:
       displayName: Save-Installer
       inputs:
         filePath: 'Scripts/Save-Installer.ps1'
+        arguments: -StorageAccountAccessKey $(SA-IntuneAppFactory-AccessKey)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:

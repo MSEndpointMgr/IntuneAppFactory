@@ -13,12 +13,12 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-03-29
-    Updated:     2023-05-29
+    Updated:     2023-06-14
 
     Version history:
     1.0.0 - (2022-03-29) Script created
     1.0.1 - (2022-10-26) Added support for Azure Storage Account source
-    1.0.2 - (2023-05-29) Fixed bugs mention in release notes for Intune App Factory 1.0.1
+    1.0.2 - (2023-06-14) Added more data to the app list item required for downloading setup files in the next phase
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -195,6 +195,7 @@ Process {
                             $PSObject = [PSCustomObject]@{
                                 "Version" = $LatestSetupFileContent.SetupVersion
                                 "URI" = -join@($StorageAccountContext.BlobEndPoint, $ContainerName, "/", $BlobItem.Name)
+                                "BlobName" = $BlobItem.Name
                             }
             
                             # Handle return value
@@ -224,7 +225,7 @@ Process {
 
     try {
         # Retrieve authentication token using client secret from key vault
-        $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+        $AuthToken = Get-AccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
 
         # Construct list of applications to be processed in the next stage
         $AppsDownloadList = New-Object -TypeName "System.Collections.ArrayList"
@@ -264,17 +265,19 @@ Process {
                     try {
                         # Attempt to locate the application in Intune
                         Write-Output -InputObject "Attempting to find application in Intune"
-                        $Win32Apps = Get-IntuneWin32App -DisplayName "$($App.IntuneAppName)" -ErrorAction "Stop"
-                        if ($Win32Apps -ne $null) {
-                            # Handle correct output based on Win32 apps count
-                            $Win32AppsCount = ($Win32Apps | Measure-Object).Count
-                            switch ($Win32AppsCount) {
-                                1 {
-                                    Write-Output -InputObject "Found '$($Win32AppsCount)' Intune Win32 application object"
-                                }
-                                default {
-                                    Write-Output -InputObject "Found '$($Win32AppsCount)' Intune Win32 application objects"
-                                }
+                        $Win32AppResources = Invoke-MSGraphOperation -Get -APIVersion "Beta" -Resource "deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')"
+                        if ($Win32AppResources -ne $null) {
+                            # Detect Win32 application matching displayName
+                            $Win32Apps = $Win32AppResources | Where-Object { $PSItem.displayName -like $App.IntuneAppName }
+                            if ($Win32Apps -ne $null) {
+                                $Win32AppsCount = ($Win32Apps | Measure-Object).Count
+                                Write-Output -InputObject "Found '$($Win32AppsCount)' Intune Win32 application object"
+                            }
+                            else {
+                                Write-Output -InputObject "Application with defined name '$($App.IntuneAppName)' was not found, adding to download list"
+
+                                # Mark new application to be published
+                                $AppDownload = $true
                             }
 
                             # Filter for the latest version published in Intune, if multiple applications objects was detected
@@ -296,10 +299,10 @@ Process {
                             }
                         }
                         else {
-                            Write-Output -InputObject "Application with defined name '$($App.IntuneAppName)' was not found, adding to download list"
+                            Write-Warning -Message "Unhandled error occurred, application will be skipped"
 
-                            # Mark new application to be published
-                            $AppDownload = $true
+                            # Handle current application output completed message
+                            Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Skipped"
                         }
 
                         # Add current app to list if publishing is required
@@ -308,27 +311,37 @@ Process {
                             $AppListItem = [PSCustomObject]@{
                                 "IntuneAppName" = $App.IntuneAppName
                                 "AppPublisher" = $App.AppPublisher
+                                "AppSource" = $App.AppSource
                                 "AppId" = $App.AppId
                                 "AppFolderName" = $App.AppFolderName
                                 "AppSetupFileName" = $App.AppSetupFileName
                                 "AppSetupVersion" = $AppItem.Version
                                 "URI" = $AppItem.URI
+                                "StorageAccountName" = if (-not([string]::IsNullOrEmpty($App.StorageAccountName))) { $App.StorageAccountName } else { [string]::Empty }
+                                "StorageAccountContainerName" = if (-not([string]::IsNullOrEmpty($App.StorageAccountContainerName))) { $App.StorageAccountContainerName } else { [string]::Empty }
+                                "BlobName" = if ($AppItem.BlobName -ne $null) { $AppItem.BlobName } else { [string]::Empty }
                             }
 
                             # Add to list of applications to be published
                             $AppsDownloadList.Add($AppListItem) | Out-Null
+
+                            # Handle current application output completed message
+                            Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Completed"
                         }
                     }
                     catch [System.Exception] {
                         Write-Warning -Message "Failed to retrieve Win32 app object from Intune for app: $($App.IntuneAppName)"
+
+                        # Handle current application output completed message
+                        Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Skipped"
                     }
                 }
                 else {
                     Write-Warning -Message "App details could not be found from app source: $($App.AppSource)"
-                }
 
-                # Handle current application output completed message
-                Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Completed"
+                    # Handle current application output completed message
+                    Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Skipped"
+                }
             }
             catch [System.Exception] {
                 Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"

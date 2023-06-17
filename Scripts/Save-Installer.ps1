@@ -13,24 +13,31 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2022-04-04
+    Updated:     2023-06-14
 
     Version history:
     1.0.0 - (2022-04-04) Script created
+    1.0.1 - (2023-06-14) Added support for download setup files from storage account
 #>
+[CmdletBinding(SupportsShouldProcess = $true)]
+param (
+    [parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$StorageAccountAccessKey
+)
 Process {
     # Functions
     function Save-InstallerFile {
         param (
-            [parameter(Mandatory = $true)]
+            [parameter(Mandatory = $true, HelpMessage = "Specify the download URL.")]
             [ValidateNotNullOrEmpty()]
             [string]$URI,
     
-            [parameter(Mandatory = $true)]
+            [parameter(Mandatory = $true, HelpMessage = "Specify the download path.")]
             [ValidateNotNullOrEmpty()]
             [string]$Path,
 
-            [parameter(Mandatory = $true)]
+            [parameter(Mandatory = $true, HelpMessage = "Specify the output file name of downloaded file.")]
             [ValidateNotNullOrEmpty()]
             [string]$Name
         )
@@ -50,7 +57,7 @@ Process {
                     $NewPath = New-Item -Path $Path -ItemType "Container" -ErrorAction "Stop"
                 }
                 catch [System.Exception] {
-                    Write-Warning -Message "Failed to create '$($Path)' with error message: $($_.Exception.Message)"
+                    throw "$($MyInvocation.MyCommand): Failed to create '$($Path)' with error message: $($_.Exception.Message)"
                 }
             }
 
@@ -60,7 +67,71 @@ Process {
                 Invoke-WebRequest -Uri $URI -OutFile $OutFilePath -UseBasicParsing -ErrorAction "Stop"
             }
             catch [System.Exception] {
-                Write-Warning -Message "Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
+                throw "$($MyInvocation.MyCommand): Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    function Get-StorageAccountBlobContent {
+        param (
+            [parameter(Mandatory = $true, HelpMessage = "Specify the storage account name.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$StorageAccountName,
+    
+            [parameter(Mandatory = $true, HelpMessage = "Specify the storage account container name.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$ContainerName,
+
+            [parameter(Mandatory = $true, HelpMessage = "Specify the name of the blob.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$BlobName,
+
+            [parameter(Mandatory = $true, HelpMessage = "Specify the download path.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$Path,
+
+            [parameter(Mandatory = $true, HelpMessage = "Specify the output file name of downloaded file.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$NewName
+        )
+        process {
+            # Create path if it doesn't exist
+            if (-not(Test-Path -Path $Path -PathType "Container")) {
+                Write-Output -InputObject "Attempting to create provided path: $($Path)"
+
+                try {
+                    $NewPath = New-Item -Path $Path -ItemType "Container" -ErrorAction "Stop"
+                }
+                catch [System.Exception] {
+                    throw "$($MyInvocation.MyCommand): Failed to create '$($Path)' with error message: $($_.Exception.Message)"
+                }
+            }
+
+            # Create storage account context using access key
+            $StorageAccountContext = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountAccessKey
+    
+            try {
+                # Retrieve the setup installer file from storage account
+                Write-Output -InputObject "Downloading '$($BlobName)' in container '$($ContainerName)' from storage account: $($StorageAccountName)"
+                $SetupFile = Get-AzStorageBlobContent -Context $StorageAccountContext -Container $ContainerName -Blob $BlobName -Destination $Path -Force -ErrorAction "Stop"
+
+                # Rename downloaded file
+                $SetupFilePath = Join-Path -Path $Path -ChildPath $BlobName
+                if (Test-Path -Path $SetupFilePath) {
+                    try {
+                        Write-Output -InputObject "Renaming downloaded setup file to: $($NewName)"
+                        Rename-Item -Path $SetupFilePath -NewName $NewName -Force -ErrorAction "Stop"
+                    }
+                    catch [System.Exception] {
+                        throw "$($MyInvocation.MyCommand): Failed to rename downloaded setup file with error message: $($_.Exception.Message)"
+                    }
+                }
+                else {
+                    throw "$($MyInvocation.MyCommand): Could not find file after attempted download operation from storage account"
+                }
+            }
+            catch [System.Exception] {
+                throw "$($MyInvocation.MyCommand): Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
             }
         }
     }
@@ -90,7 +161,15 @@ Process {
             try {
                 # Save installer
                 Write-Output -InputObject "Attempting to download '$($App.AppSetupFileName)' from: $($App.URI)"
-                Save-InstallerFile -URI $App.URI -Path $AppSetupFolderPath -Name $App.AppSetupFileName -ErrorAction "Stop"
+                switch ($App.AppSource) {
+                    "StorageAccount" {
+                        Get-StorageAccountBlobContent -StorageAccountName $App.StorageAccountName -ContainerName $App.StorageAccountContainerName -BlobName $App.BlobName -Path $AppSetupFolderPath -NewName $App.AppSetupFileName -ErrorAction "Stop"
+                    }
+                    default {
+                        Save-InstallerFile -URI $App.URI -Path $AppSetupFolderPath -Name $App.AppSetupFileName -ErrorAction "Stop"
+                    }
+                }
+                Write-Output -InputObject "Successfully downloaded installer"
 
                 # Validate setup installer was successfully downloaded
                 $AppSetupFilePath = Join-Path -Path $AppSetupFolderPath -ChildPath $App.AppSetupFileName
