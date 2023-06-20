@@ -69,6 +69,9 @@ Process {
         if ($FilterOptions.InstallerType) {
             $FilterList.Add("`$PSItem.InstallerType -eq ""$($FilterOptions.InstallerType)""") | Out-Null
         }
+        if ($FilterOptions.Language) {
+            $FilterList.Add("`$PSItem.Language -eq ""$($FilterOptions.Language)""") | Out-Null
+        }
     
         # Construct script block from filter list array
         $FilterExpression = [scriptblock]::Create(($FilterList -join " -and "))
