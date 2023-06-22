@@ -72,6 +72,9 @@ Process {
         if ($FilterOptions.Language) {
             $FilterList.Add("`$PSItem.Language -eq ""$($FilterOptions.Language)""") | Out-Null
         }
+        if ($FilterOptions.Edition ) {
+            $FilterList.Add("`$PSItem.Edition -eq ""$($FilterOptions.Edition )""") | Out-Null
+        }
     
         # Construct script block from filter list array
         $FilterExpression = [scriptblock]::Create(($FilterList -join " -and "))
