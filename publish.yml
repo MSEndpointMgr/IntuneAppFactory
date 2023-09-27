@@ -3,15 +3,15 @@ name: IntuneAppFactory
 trigger: none
 
 schedules:
-- cron: "0 */6 * * *"
-  displayName: Every 6 hours
+- cron: "0 3 * * *"
+  displayName: Daily every evening at 3AM 
   branches:
     include:
     - main
   always: true
 
 pool:
-  name: '<<POOLNAME>>'
+  name: 'MSE-WIN-01'
 
 parameters:
   - name: operationalMode
@@ -25,7 +25,7 @@ parameters:
   - name: archiveMode
     displayName: Archive published apps
     type: string
-    default: 'No'
+    default: 'Yes'
     values:
     - 'Yes'
     - 'No'

@@ -9,7 +9,7 @@
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
         "AppVersion": "<replaced_by_pipeline>",
-        "Description": "Install Notepad++",
+        "Description": "Install Treesize Free",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "",
         "Owner": ""
@@ -18,11 +18,12 @@
         "InstallCommand": "Deploy-Application.exe Install",
         "UninstallCommand": "Deploy-Application.exe Uninstall",
         "InstallExperience": "system",
-        "DeviceRestartBehavior": "suppress"
+        "DeviceRestartBehavior": "suppress",
+        "AllowAvailableUninstall": "false"
     },
     "RequirementRule": {
         "MinimumSupportedWindowsRelease": "W10_21H2",
-        "Architecture": "x64"
+        "Architecture": "x86"
     },
     "CustomRequirementRule": [
     ],
@@ -30,7 +31,7 @@
         {
             "Type": "Registry",
             "DetectionMethod": "VersionComparison",
-            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Notepad++",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Treesize Free_is1",
             "ValueName": "DisplayVersion",
             "Operator": "greaterThanOrEqual",
             "Value": "<replaced_by_pipeline>",
