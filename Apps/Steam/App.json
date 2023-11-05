@@ -1,0 +1,40 @@
+{
+    "PackageInformation": {
+        "SetupType": "EXE",
+        "SetupFile": "Deploy-Application.exe",
+        "SourceFolder": "Source",
+        "OutputFolder": "Package",
+        "IconFile": "Icon.png"
+    },
+    "Information": {
+        "DisplayName": "<replaced_by_pipeline>",
+        "AppVersion": "<replaced_by_pipeline>",
+        "Description": "Installs Steam",
+        "Publisher": "<replaced_by_pipeline>",
+        "Notes": "",
+        "Owner": ""
+    },
+    "Program": {
+        "InstallCommand": "Deploy-Application.exe Install",
+        "UninstallCommand": "Deploy-Application.exe Uninstall",
+        "InstallExperience": "system",
+        "DeviceRestartBehavior": "suppress",
+        "AllowAvailableUninstall": "false"
+    },
+    "RequirementRule": {
+        "MinimumSupportedWindowsRelease": "W10_21H2",
+        "Architecture": "x86"
+    },
+    "CustomRequirementRule": [
+    ],
+    "DetectionRule": [
+        {
+            "Type": "Registry",
+            "DetectionMethod": "Existence",
+            "KeyPath": "HKEY_CURRENT_USER\\SOFTWARE\\Valve\\Steam",
+            "ValueName": "SteamExe",
+            "DetectionType": "exists",
+            "Check32BitOn64System": "false"
+        }
+    ]
+}
