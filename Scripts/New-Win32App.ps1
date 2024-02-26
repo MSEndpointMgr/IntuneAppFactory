@@ -170,6 +170,7 @@ Process {
 
             # Create required .intunewin package from source folder
             Write-Output -InputObject "Creating .intunewin package file from source folder"
+            Invoke-WebRequest -URI "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/raw/1a00a2a786de646c5fc46d6e1b79988c636e764e/IntuneWinAppUtil.exe" -outfile "$env:TEMP\IntuneWinAppUtil.exe"
             $IntuneAppPackage = New-IntuneWin32AppPackage -SourceFolder $SourceFolder -SetupFile $AppData.PackageInformation.SetupFile -OutputFolder $OutputFolder
 
             # Create default requirement rule
