@@ -34,17 +34,17 @@
             "AppSource": "Winget",
             "AppID": "JAMSoftware.TreeSize.Free",
             "AppFolderName": "TreeSize Free",
-            "AppSetupFileName": "TreeSizeSetup.exe"
+            "AppSetupFileName": "TreeSizeFreeSetup.exe"
         },
         {
             "IntuneAppName": "Steam",
             "AppPublisher": "Valve",
-            "AppSource": "Storage Account",
-            "AppID": "",
+            "AppSource": "Winget",
+            "AppID": "Valve.Steam",
             "AppFolderName": "Steam",
-            "AppSetupFileName": "SteamSetup.exe",
-            "StorageAccountName": "iafstorage",
-            "StorageAccountContainerName": "Steam"
-        }
+            "AppSetupFileName": "SteamSetup.exe"
+        },
+    
+        
     ]
 }

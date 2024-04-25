@@ -1,5 +1,5 @@
-﻿// Date Modified: 01-08-2016
-// Version Number: 3.6.8
+﻿// Date Modified: 26/01/2021
+// Version Number: 3.8.4
 
 using System;
 using System.Text;
@@ -25,40 +25,41 @@ namespace PSADT
 			LOAD_LIBRARY_AS_IMAGE_RESOURCE  	= 0x00000020,
 			LOAD_WITH_ALTERED_SEARCH_PATH 		= 0x00000008
 		}
-		
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, LoadLibraryFlags dwFlags);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
-		static extern int LoadString(IntPtr hInstance, int uID, StringBuilder lpBuffer, int nBufferMax);
-		
+		static extern int LoadString(IntPtr hInstance, uint uID, StringBuilder lpBuffer, int nBufferMax);
+
 		// Get MSI exit code message from msimsg.dll resource dll
 		public static string GetMessageFromMsiExitCode(int errCode)
 		{
 			IntPtr hModuleInstance = LoadLibraryEx("msimsg.dll", IntPtr.Zero, LoadLibraryFlags.LOAD_LIBRARY_AS_DATAFILE);
-			
+
 			StringBuilder sb = new StringBuilder(255);
-			LoadString(hModuleInstance, errCode, sb, sb.Capacity + 1);
-			
+			uint u = Convert.ToUInt32(errCode);
+			LoadString(hModuleInstance, u, sb, sb.Capacity + 1);
+
 			return sb.ToString();
 		}
 	}
-	
+
 	public class Explorer
 	{
 		private static readonly IntPtr HWND_BROADCAST = new IntPtr(0xffff);
 		private const int WM_SETTINGCHANGE = 0x1a;
 		private const int SMTO_ABORTIFHUNG = 0x0002;
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		static extern bool SendNotifyMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
-		private static extern IntPtr SendMessageTimeout(IntPtr hWnd, int Msg, IntPtr wParam, string lParam, int fuFlags, int uTimeout, IntPtr lpdwResult);
-		
+		private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam, uint fuFlags, uint uTimeout, IntPtr lpdwResult);
+
 		[DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = false)]
-		private static extern int SHChangeNotify(int eventId, int flags, IntPtr item1, IntPtr item2);
-		
+		private static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
+
 		public static void RefreshDesktopAndEnvironmentVariables()
 		{
 			// Update desktop icons
@@ -68,51 +69,51 @@ namespace PSADT
 			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "Environment", SMTO_ABORTIFHUNG, 100, IntPtr.Zero);
 		}
 	}
-	
+
 	public sealed class FileVerb
 	{
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
-		public static extern int LoadString(IntPtr h, int id, StringBuilder sb, int maxBuffer);
-		
+		public static extern int LoadString(IntPtr h, uint id, StringBuilder sb, int maxBuffer);
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr LoadLibrary(string s);
-		
+
 		public static string GetPinVerb(int VerbId)
 		{
 			IntPtr hShell32 = LoadLibrary("shell32.dll");
 			const int nChars  = 255;
 			StringBuilder Buff = new StringBuilder("", nChars);
-						
-			LoadString(hShell32, VerbId, Buff, Buff.Capacity);
+			uint u = Convert.ToUInt32(VerbId);
+			LoadString(hShell32, u, Buff, Buff.Capacity);
 			return Buff.ToString();
 		}
 	}
-	
+
 	public sealed class IniFile
 	{
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetPrivateProfileString(string lpAppName, string lpKeyName, string lpDefault, StringBuilder lpReturnedString, int nSize, string lpFileName);
-		
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool WritePrivateProfileString(string lpAppName, string lpKeyName, StringBuilder lpString, string lpFileName);
-		
+
 		public static string GetIniValue(string section, string key, string filepath)
 		{
 			string sDefault	= "";
 			const int  nChars  = 1024;
 			StringBuilder Buff = new StringBuilder(nChars);
-					
+
 			GetPrivateProfileString(section, key, sDefault, Buff, Buff.Capacity, filepath);
 			return Buff.ToString();
 		}
-		
+
 		public static void SetIniValue(string section, string key, StringBuilder value, string filepath)
 		{
 			WritePrivateProfileString(section, key, value, filepath);
 		}
 	}
-	
+
 	public class UiAutomation
 	{
 		public enum GetWindow_Cmd : int
@@ -125,7 +126,7 @@ namespace PSADT
 			GW_CHILD        = 5,
 			GW_ENABLEDPOPUP = 6
 		}
-		
+
 		public enum ShowWindowEnum
 		{
 			Hide                    = 0,
@@ -142,7 +143,7 @@ namespace PSADT
 			ShowDefault             = 10,
 			ForceMinimized          = 11
 		}
-		
+
 		public enum UserNotificationState
 		{
 			// http://msdn.microsoft.com/en-us/library/bb762533(v=vs.85).aspx
@@ -154,75 +155,95 @@ namespace PSADT
 			QuietTime									=6, // Introduced in Windows 7. The current user is in "quiet time", which is the first hour after a new user logs into his or her account for the first time.
 			WindowsStoreAppRunning						=7  // Introduced in Windows 8. A Windows Store app is running.
 		}
-		
+
 		// Only for Vista or above
 		[DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		static extern int SHQueryUserNotificationState(out UserNotificationState pquns);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool EnumWindows(EnumWindowsProcD lpEnumFunc, ref IntPtr lParam);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetWindowTextLength(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		private static extern IntPtr GetDesktopWindow();
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		private static extern IntPtr GetShellWindow();
-		
+
+        public enum DeviceCap
+        {
+            HORZRES = 8,
+            VERTRES = 10,
+            DESKTOPVERTRES = 117,
+            DESKTOPHORZRES = 118
+        }
+
+        [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+        public static extern int GetDeviceCaps(IntPtr hDC, int nIndex);
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsWindowEnabled(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern bool IsWindowVisible(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool IsIconic(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool ShowWindow(IntPtr hWnd, ShowWindowEnum flags);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr SetActiveWindow(IntPtr hwnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool SetForegroundWindow(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr GetForegroundWindow();
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr SetFocus(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern bool BringWindowToTop(IntPtr hWnd);
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
-		
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetCurrentThreadId();
-		
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern bool AttachThreadInput(int idAttach, int idAttachTo, bool fAttach);
-		
+
 		[DllImport("user32.dll", EntryPoint = "GetWindowLong", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr GetWindowLong32(IntPtr hWnd, int nIndex);
-		
+
 		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
-		
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+		public static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+		public static extern bool EnableMenuItem(IntPtr hMenu, uint uIDEnableItem, uint uEnable);
+
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = false)]
+		public static extern IntPtr DestroyMenu(IntPtr hWnd);
+
 		public delegate bool EnumWindowsProcD(IntPtr hWnd, ref IntPtr lItems);
-		
+
 		public static bool EnumWindowsProc(IntPtr hWnd, ref IntPtr lItems)
 		{
 			if (hWnd != IntPtr.Zero)
@@ -237,7 +258,7 @@ namespace PSADT
 				return false;
 			}
 		}
-		
+
 		public static List<IntPtr> EnumWindows()
 		{
 			try
@@ -254,7 +275,7 @@ namespace PSADT
 				throw new Exception("An error occured during window enumeration: " + ex.Message);
 			}
 		}
-		
+
 		public static string GetWindowText(IntPtr hWnd)
 		{
 			int iTextLength = GetWindowTextLength(hWnd);
@@ -269,7 +290,7 @@ namespace PSADT
 				return String.Empty;
 			}
 		}
-		
+
 		public static bool BringWindowToFront(IntPtr windowHandle)
 		{
 			bool breturn = false;
@@ -278,28 +299,28 @@ namespace PSADT
 				// Show minimized window because SetForegroundWindow does not work for minimized windows
 				ShowWindow(windowHandle, ShowWindowEnum.ShowMaximized);
 			}
-			
+
 			int lpdwProcessId;
 			int windowThreadProcessId = GetWindowThreadProcessId(GetForegroundWindow(), out lpdwProcessId);
 			int currentThreadId = GetCurrentThreadId();
 			AttachThreadInput(windowThreadProcessId, currentThreadId, true);
-			
+
 			BringWindowToTop(windowHandle);
 			breturn = SetForegroundWindow(windowHandle);
 			SetActiveWindow(windowHandle);
 			SetFocus(windowHandle);
-			
+
 			AttachThreadInput(windowThreadProcessId, currentThreadId, false);
 			return breturn;
 		}
-		
+
 		public static int GetWindowThreadProcessId(IntPtr windowHandle)
 		{
 			int processID = 0;
 			GetWindowThreadProcessId(windowHandle, out processID);
 			return processID;
 		}
-		
+
 		public static IntPtr GetWindowLong(IntPtr hWnd, int nIndex)
 		{
 			if (IntPtr.Size == 4)
@@ -308,7 +329,7 @@ namespace PSADT
 			}
 			return GetWindowLongPtr64(hWnd, nIndex);
 		}
-		
+
 		public static string GetUserNotificationState()
 		{
 			// Only works for Windows Vista or higher
@@ -317,33 +338,33 @@ namespace PSADT
 			return state.ToString();
 		}
 	}
-	
+
 	public class QueryUser
 	{
 		[DllImport("wtsapi32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern IntPtr WTSOpenServer(string pServerName);
-		
+
 		[DllImport("wtsapi32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern void WTSCloseServer(IntPtr hServer);
-		
+
 		[DllImport("wtsapi32.dll", CharSet = CharSet.Ansi, SetLastError = false)]
 		public static extern bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr pBuffer, out int pBytesReturned);
-		
+
 		[DllImport("wtsapi32.dll", CharSet = CharSet.Ansi, SetLastError = false)]
 		public static extern int WTSEnumerateSessions(IntPtr hServer, int Reserved, int Version, out IntPtr pSessionInfo, out int pCount);
-		
+
 		[DllImport("wtsapi32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern void WTSFreeMemory(IntPtr pMemory);
-		
+
 		[DllImport("winsta.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int WinStationQueryInformation(IntPtr hServer, int sessionId, int information, ref WINSTATIONINFORMATIONW pBuffer, int bufferLength, ref int returnedLength);
-		
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern int GetCurrentProcessId();
-		
+
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = false)]
 		public static extern bool ProcessIdToSessionId(int processId, ref int pSessionId);
-		
+
 		public class TerminalSessionData
 		{
 			public int SessionId;
@@ -358,7 +379,7 @@ namespace PSADT
 				IsUserSession = isUserSession;
 			}
 		}
-		
+
 		public class TerminalSessionInfo
 		{
 			public string NTAccount;
@@ -382,7 +403,7 @@ namespace PSADT
 			public string ClientDirectory;
 			public int ClientBuildNumber;
 		}
-		
+
 		[StructLayout(LayoutKind.Sequential)]
 		private struct WTS_SESSION_INFO
 		{
@@ -391,7 +412,7 @@ namespace PSADT
 			public string SessionName;
 			public WTS_CONNECTSTATE_CLASS State;
 		}
-		
+
 		[StructLayout(LayoutKind.Sequential)]
 		public struct WINSTATIONINFORMATIONW
 		{
@@ -408,12 +429,12 @@ namespace PSADT
 			private byte[] Reserved3;
 			public FILETIME CurrentTime;
 		}
-		
+
 		public enum WINSTATIONINFOCLASS
 		{
 			WinStationInformation = 8
 		}
-		
+
 		public enum WTS_CONNECTSTATE_CLASS
 		{
 			Active,
@@ -427,7 +448,7 @@ namespace PSADT
 			Down,
 			Init
 		}
-		
+
 		public enum WTS_INFO_CLASS
 		{
 			SessionId=4,
@@ -440,24 +461,24 @@ namespace PSADT
 			ClientDirectory,
 			ClientProtocolType=16
 		}
-		
+
 		private static IntPtr OpenServer(string Name)
 		{
 			IntPtr server = WTSOpenServer(Name);
 			return server;
 		}
-		
+
 		private static void CloseServer(IntPtr ServerHandle)
 		{
 			WTSCloseServer(ServerHandle);
 		}
-		
+
 		private static IList<T> PtrToStructureList<T>(IntPtr ppList, int count) where T : struct
 		{
 			List<T> result = new List<T>();
 			long pointer = ppList.ToInt64();
 			int sizeOf = Marshal.SizeOf(typeof(T));
-			
+
 			for (int index = 0; index < count; index++)
 			{
 				T item = (T) Marshal.PtrToStructure(new IntPtr(pointer), typeof(T));
@@ -466,7 +487,7 @@ namespace PSADT
 			}
 			return result;
 		}
-		
+
 		public static DateTime? FileTimeToDateTime(FILETIME ft)
 		{
 			if (ft.dwHighDateTime == 0 && ft.dwLowDateTime == 0)
@@ -476,7 +497,7 @@ namespace PSADT
 			long hFT = (((long) ft.dwHighDateTime) << 32) + ft.dwLowDateTime;
 			return DateTime.FromFileTime(hFT);
 		}
-		
+
 		public static WINSTATIONINFORMATIONW GetWinStationInformation(IntPtr server, int sessionId)
 		{
 			int retLen = 0;
@@ -484,7 +505,7 @@ namespace PSADT
 			WinStationQueryInformation(server, sessionId, (int) WINSTATIONINFOCLASS.WinStationInformation, ref wsInfo, Marshal.SizeOf(typeof(WINSTATIONINFORMATIONW)), ref retLen);
 			return wsInfo;
 		}
-		
+
 		public static TerminalSessionData[] ListSessions(string ServerName)
 		{
 			IntPtr server = IntPtr.Zero;
@@ -492,9 +513,9 @@ namespace PSADT
 			{
 				ServerName = Environment.MachineName;
 			}
-			
+
 			List<TerminalSessionData> results = new List<TerminalSessionData>();
-			
+
 			try
 			{
 				server = OpenServer(ServerName);
@@ -502,12 +523,12 @@ namespace PSADT
 				int count;
 				bool _isUserSession = false;
 				IList<WTS_SESSION_INFO> sessionsInfo;
-				
+
 				if (WTSEnumerateSessions(server, 0, 1, out ppSessionInfo, out count) == 0)
 				{
 					throw new Win32Exception();
 				}
-				
+
 				try
 				{
 					sessionsInfo = PtrToStructureList<WTS_SESSION_INFO>(ppSessionInfo, count);
@@ -516,7 +537,7 @@ namespace PSADT
 				{
 					WTSFreeMemory(ppSessionInfo);
 				}
-				
+
 				foreach (WTS_SESSION_INFO sessionInfo in sessionsInfo)
 				{
 					if (sessionInfo.SessionName != "Services" && sessionInfo.SessionName != "RDP-Tcp")
@@ -531,11 +552,11 @@ namespace PSADT
 			{
 				CloseServer(server);
 			}
-			
+
 			TerminalSessionData[] returnData = results.ToArray();
 			return returnData;
 		}
-		
+
 		public static TerminalSessionInfo GetSessionInfo(string ServerName, int SessionId)
 		{
 			IntPtr server = IntPtr.Zero;
@@ -555,7 +576,7 @@ namespace PSADT
 			{
 				currentSessionID = -1;
 			}
-			
+
 			// Get all members of the local administrators group
 			bool _IsLocalAdminCheckSuccess = false;
 			List<string> localAdminGroupSidsList = new List<string>();
@@ -565,43 +586,51 @@ namespace PSADT
 				string localAdminGroupName = new SecurityIdentifier("S-1-5-32-544").Translate(typeof(NTAccount)).Value.Split('\\')[1];
 				DirectoryEntry admGroup = localMachine.Children.Find(localAdminGroupName, "group");
 				object members = admGroup.Invoke("members", null);
+				string validSidPattern = @"^S-\d-\d+-(\d+-){1,14}\d+$";
 				foreach (object groupMember in (IEnumerable)members)
 				{
 					DirectoryEntry member = new DirectoryEntry(groupMember);
 					if (member.Name != String.Empty)
 					{
-						localAdminGroupSidsList.Add((new NTAccount(member.Name)).Translate(typeof(SecurityIdentifier)).Value);
+						if (Regex.IsMatch(member.Name, validSidPattern))
+						{
+							localAdminGroupSidsList.Add(member.Name);
+						}
+						else
+						{
+							localAdminGroupSidsList.Add((new NTAccount(member.Name)).Translate(typeof(SecurityIdentifier)).Value);
+						}
 					}
 				}
 				_IsLocalAdminCheckSuccess = true;
 			}
 			catch { }
-			
+
 			try
 			{
 				server = OpenServer(ServerName);
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.ClientBuildNumber, out buffer, out bytesReturned) == false)
 				{
 					return data;
 				}
 				int lData = Marshal.ReadInt32(buffer);
 				data.ClientBuildNumber = lData;
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.ClientDirectory, out buffer, out bytesReturned) == false)
 				{
 					return data;
 				}
 				string strData = Marshal.PtrToStringAnsi(buffer);
 				data.ClientDirectory = strData;
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.ClientName, out buffer, out bytesReturned) == false)
 				{
 					return data;
 				}
 				strData = Marshal.PtrToStringAnsi(buffer);
 				data.ClientName = strData;
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.ClientProtocolType, out buffer, out bytesReturned) == false)
 				{
 					return data;
@@ -618,21 +647,21 @@ namespace PSADT
 					data.IsRdpSession = false;
 				}
 				data.ClientProtocolType = strData;
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.ConnectState, out buffer, out bytesReturned) == false)
 				{
 					return data;
 				}
 				lData = Marshal.ReadInt32(buffer);
 				data.ConnectState = ((WTS_CONNECTSTATE_CLASS) lData).ToString();
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.SessionId, out buffer, out bytesReturned) == false)
 				{
 					return data;
 				}
 				lData = Marshal.ReadInt32(buffer);
 				data.SessionId = lData;
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.DomainName, out buffer, out bytesReturned) == false)
 				{
 					return data;
@@ -643,7 +672,7 @@ namespace PSADT
 				{
 					_NTAccount = strData;
 				}
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.UserName, out buffer, out bytesReturned) == false)
 				{
 					return data;
@@ -671,7 +700,7 @@ namespace PSADT
 						}
 					}
 				}
-				
+
 				if (WTSQuerySessionInformation(server, SessionId, WTS_INFO_CLASS.SessionName, out buffer, out bytesReturned) == false)
 				{
 					return data;
@@ -688,7 +717,7 @@ namespace PSADT
 					_IsConsoleSession = true;
 				}
 				data.IsConsoleSession = _IsConsoleSession;
-				
+
 				WINSTATIONINFORMATIONW wsInfo = GetWinStationInformation(server, SessionId);
 				DateTime? _loginTime = FileTimeToDateTime(wsInfo.LoginTime);
 				DateTime? _lastInputTime = FileTimeToDateTime(wsInfo.LastInputTime);
@@ -698,7 +727,7 @@ namespace PSADT
 				data.LogonTime = _loginTime;
 				data.IdleTime = _idleTime;
 				data.DisconnectTime = _disconnectTime;
-				
+
 				if (currentSessionID == SessionId)
 				{
 					_IsCurrentSessionId = true;
@@ -713,14 +742,14 @@ namespace PSADT
 			}
 			return data;
 		}
-		
+
 		public static TerminalSessionInfo[] GetUserSessionInfo(string ServerName)
 		{
 			if (ServerName == "localhost" || ServerName == String.Empty)
 			{
 				ServerName = Environment.MachineName;
 			}
-			
+
 			// Find and get detailed information for all user sessions
 			// Also determine the active user session. If a console user exists, then that will be the active user session.
 			// If no console user exists but users are logged in, such as on terminal servers, then select the first logged-in non-console user that is either 'Active' or 'Connected' as the active user.
@@ -740,7 +769,7 @@ namespace PSADT
 						{
 							firstActiveUserNTAccount = sessionInfo.NTAccount;
 						}
-						
+
 						if (sessionInfo.IsConsoleSession == true)
 						{
 							sessionInfo.IsActiveUserSession = true;
@@ -750,12 +779,12 @@ namespace PSADT
 						{
 							sessionInfo.IsActiveUserSession = false;
 						}
-						
+
 						userSessionsInfo.Add(sessionInfo);
 					}
 				}
 			}
-			
+
 			TerminalSessionInfo[] userSessions = userSessionsInfo.ToArray();
 			if (IsActiveUserSessionSet == false)
 			{
@@ -768,7 +797,7 @@ namespace PSADT
 					}
 				}
 			}
-			
+
 			return userSessions;
 		}
 	}

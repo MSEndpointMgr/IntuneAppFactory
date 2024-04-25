@@ -9,7 +9,7 @@
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
         "AppVersion": "<replaced_by_pipeline>",
-        "Description": "Installs Steam",
+        "Description": "Photoshop testing",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "",
         "Owner": ""
@@ -17,12 +17,12 @@
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
         "UninstallCommand": "Deploy-Application.exe Uninstall",
-        "InstallExperience": "system",
+        "InstallExperience": "user",
         "DeviceRestartBehavior": "suppress",
-        "AllowAvailableUninstall": "false"
+        "AllowAvailableUninstall": "true"
     },
     "RequirementRule": {
-        "MinimumSupportedWindowsRelease": "W10_21H2",
+        "MinimumSupportedWindowsRelease": "W10_21H1",
         "Architecture": "x64"
     },
     "CustomRequirementRule": [
@@ -30,10 +30,11 @@
     "DetectionRule": [
         {
             "Type": "Registry",
-            "DetectionMethod": "Existence",
-            "KeyPath": "HKEY_CURRENT_USER\\SOFTWARE\\Valve\\Steam",
-            "ValueName": "SteamExe",
-            "DetectionType": "exists",
+            "DetectionMethod": "VersionComparison",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\###PRODUCTCODE###",
+            "ValueName": "DisplayVersion",
+            "Operator": "greaterThanOrEqual",
+            "Value": "6.0.0.571",
             "Check32BitOn64System": "false"
         }
     ]

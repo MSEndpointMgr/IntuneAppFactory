@@ -9,7 +9,7 @@
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
         "AppVersion": "<replaced_by_pipeline>",
-        "Description": "Installs Steam",
+        "Description": "Install Adobe Acrobat Reader",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "",
         "Owner": ""
@@ -19,7 +19,7 @@
         "UninstallCommand": "Deploy-Application.exe Uninstall",
         "InstallExperience": "system",
         "DeviceRestartBehavior": "suppress",
-        "AllowAvailableUninstall": "false"
+        "AllowAvailableUninstall": "true"
     },
     "RequirementRule": {
         "MinimumSupportedWindowsRelease": "W10_21H2",
@@ -30,10 +30,11 @@
     "DetectionRule": [
         {
             "Type": "Registry",
-            "DetectionMethod": "Existence",
-            "KeyPath": "HKEY_CURRENT_USER\\SOFTWARE\\Valve\\Steam",
-            "ValueName": "SteamExe",
-            "DetectionType": "exists",
+            "DetectionMethod": "VersionComparison",
+            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{AC76BA86-1033-FF00-7760-BC15014EA700}",
+            "ValueName": "DisplayVersion",
+            "Operator": "greaterThanOrEqual",
+            "Value": "<replaced_by_pipeline>",
             "Check32BitOn64System": "false"
         }
     ]

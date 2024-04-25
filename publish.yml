@@ -3,15 +3,15 @@ name: IntuneAppFactory
 trigger: none
 
 schedules:
-- cron: "0 3 * * *"
-  displayName: Daily every evening at 3AM 
+- cron: "0 3 * * Sun"
+  displayName: weekly sunday run at 3am
   branches:
     include:
     - main
   always: true
 
 pool:
-  name: 'MSE-WIN-01'
+  name: 'KLH-IAP-01'
 
 parameters:
   - name: operationalMode
@@ -32,7 +32,7 @@ parameters:
 
 variables:
 - group: IntuneAppFactory
-- group: KeyVault
+- group: KeyVault02
 
 # Stage: 1
 # - Description: Test environment for required files
@@ -54,6 +54,9 @@ stages:
       displayName: Test-TemplatesFolder
       inputs:
         filePath: 'Scripts/Test-TemplatesFolder.ps1'
+
+
+
 # Stage: 2
 # - Description: Install all required modules and remove files from previous pipeline executions
 # - Input file required: None 
@@ -94,7 +97,7 @@ stages:
       displayName: Test-AppFiles
       inputs:
         filePath: 'Scripts/Test-AppFiles.ps1'
-        arguments: -ConnectionString $(SA-IntuneAppFactory-AccessKey)
+        arguments: -ConnectionString $(Storage-Key1)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -131,7 +134,7 @@ stages:
       displayName: Test-AppList
       inputs:
         filePath: 'Scripts/Test-AppList.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -StorageAccountAccessKey $(SA-IntuneAppFactory-AccessKey)
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(ServicePrincipalSecret) -StorageAccountAccessKey $(Storage-Key1)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -169,7 +172,7 @@ stages:
       displayName: Save-Installer
       inputs:
         filePath: 'Scripts/Save-Installer.ps1'
-        arguments: -StorageAccountAccessKey $(SA-IntuneAppFactory-AccessKey)
+        arguments: -StorageAccountAccessKey $(Storage-Key1)
     - task: PublishBuildArtifacts@1
       name: publish_artifacts
       inputs:
@@ -247,7 +250,7 @@ stages:
       displayName: New-AppArchive
       inputs:
         filePath: 'Scripts/New-AppArchive.ps1'
-        arguments: -StorageAccountName $(ArchiveStorageAccountName) -ContainerName $(ArchiveContainerName) -StorageAccountKey $(SA-IntuneAppFactory-AccessKey)
+        arguments: -StorageAccountName $(ArchiveStorageAccountName) -ContainerName $(ArchiveContainerName) -StorageAccountKey $(Storage-Key1)
     - task: DeleteFiles@1
       name: cleanup_artifacts
       inputs:
@@ -282,4 +285,4 @@ stages:
       displayName: New-Win32App
       inputs:
         filePath: 'Scripts/New-Win32App.ps1'
-        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LA-IntuneAppFactory-PrimaryKey)
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(ServicePrincipalSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LogAnalyticsPrimary)

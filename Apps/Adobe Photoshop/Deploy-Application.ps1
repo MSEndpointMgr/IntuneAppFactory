@@ -211,9 +211,8 @@ Try {
         ## <<<<<<<<<<<<<<<  Perform Installation tasks here>>>>>>>>>>>>>>>>
 
 		## SAMPLE: EXE
-		#$exeInstall = "###SETUPFILENAME###"
-		#$exeInstallParams = ""
-		#Execute-Process -Path "$($dirFiles)\$($exeInstall)" -Parameters "$($exeInstallParams)"
+		$exeInstall = "###SETUPFILENAME###"
+		Execute-Process -Path "$($dirFiles)\$($exeInstall)" --silent"
 
 		## SAMPLE: PowerShell Script
 		#Execute-Process -Path "powershell.exe" -Parameters "-ExecutionPolicy Bypass -File ""$($dirFiles)\ScriptName.ps1"""
