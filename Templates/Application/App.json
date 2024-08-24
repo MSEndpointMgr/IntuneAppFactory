@@ -71,7 +71,8 @@
         {
             "Type": "MSI",
             "ProductCode": "<replaced_by_pipeline>",
-            "ProductVersionOperator": "notConfigured"
+            "ProductVersionOperator": "notConfigured",
+            "ProductVersion": "<replaced_by_pipeline>"
         },
         {
             "Type": "Script",
