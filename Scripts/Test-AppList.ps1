@@ -75,6 +75,9 @@ Process {
         if ($FilterOptions.Edition ) {
             $FilterList.Add("`$PSItem.Edition -eq ""$($FilterOptions.Edition )""") | Out-Null
         }
+        if ($FilterOptions.Release ) {
+            $FilterList.Add("`$PSItem.Release -eq ""$($FilterOptions.Release )""") | Out-Null
+        }
     
         # Construct script block from filter list array
         $FilterExpression = [scriptblock]::Create(($FilterList -join " -and "))
@@ -84,6 +87,55 @@ Process {
         
         # Handle return value
         return $EvergreenApp
+    }
+
+    function Get-NevergreenAppItem {
+        param (
+            [parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$AppId,
+            
+            [parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [System.Object[]]$FilterOptions
+        )
+        # Construct array list to build the dynamic filter list
+        $FilterList = New-Object -TypeName "System.Collections.ArrayList"
+    
+        # Process known filter properties and add them to array list if present on current object
+        if ($FilterOptions.Architecture) {
+            $FilterList.Add("`$PSItem.Architecture -eq ""$($FilterOptions.Architecture)""") | Out-Null
+        }
+        if ($FilterOptions.Platform) {
+            $FilterList.Add("`$PSItem.Platform -eq ""$($FilterOptions.Platform)""") | Out-Null
+        }
+        if ($FilterOptions.Channel) {
+            $FilterList.Add("`$PSItem.Channel -eq ""$($FilterOptions.Channel)""") | Out-Null
+        }
+        if ($FilterOptions.Type) {
+            $FilterList.Add("`$PSItem.Type -eq ""$($FilterOptions.Type)""") | Out-Null
+        }
+        if ($FilterOptions.InstallerType) {
+            $FilterList.Add("`$PSItem.InstallerType -eq ""$($FilterOptions.InstallerType)""") | Out-Null
+        }
+        if ($FilterOptions.Language) {
+            $FilterList.Add("`$PSItem.Language -eq ""$($FilterOptions.Language)""") | Out-Null
+        }
+        if ($FilterOptions.Edition ) {
+            $FilterList.Add("`$PSItem.Edition -eq ""$($FilterOptions.Edition )""") | Out-Null
+        }
+        if ($FilterOptions.Release ) {
+            $FilterList.Add("`$PSItem.Release -eq ""$($FilterOptions.Release )""") | Out-Null
+        }
+    
+        # Construct script block from filter list array
+        $FilterExpression = [scriptblock]::Create(($FilterList -join " -and "))
+
+        # Get the nevergreen app based on dynamic filter list
+        $NevergreenApp = Get-NevergreenApp -Name $AppId | Where-Object -FilterScript $FilterExpression
+        
+        # Handle return value
+        return $NevergreenApp
     }
 
     function Get-WindowsPackageManagerItem {
@@ -256,6 +308,9 @@ Process {
                     }
                     "Evergreen" {
                         $AppItem = Get-EvergreenAppItem -AppId $App.AppId -FilterOptions $App.FilterOptions
+                    }
+                    "Nevergreen" {
+                        $AppItem = Get-NevergreenAppItem -AppId $App.AppId -FilterOptions $App.FilterOptions
                     }
                     "StorageAccount" {
                         $AppItem = Get-StorageAccountAppItem -StorageAccountName $App.StorageAccountName -ContainerName $App.StorageAccountContainerName
