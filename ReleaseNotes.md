@@ -16,6 +16,7 @@
 - Scope Tag support has been added, by using a new property named `ScopeTagName` in the App.json file under the `Information` section.
 - Any string matching `###ProductCode###` specified in the `Deploy-Application.ps1` script file is automatically replaced with the Product Code value of the MSI, similar to how the Product Code can be inserted into detection rule logic or the setup app file name.
 - Added a few more detection rule templates to the `App.json` template file.
+- Fixed a bug referenced in issue #13.
 
 ## 1.0.2
 - Switched download method used for app source type of StorageAccount from using Invoke-WebRequest to Az.Storage module in the `Save-Installer.ps1` script. This was forgotten when 1.0.1 was released, and would not work if public access to the Storage Account was disabled. This change also requires an update to the publish.yml pipeline file, where the Storage Account Key is passed in as parameter.
