@@ -18,11 +18,12 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2023-05-29
+    Updated:     2024-03-04
 
     Version history:
     1.0.0 - (2022-04-04) Script created
     1.0.1 - (2023-05-29) Fixed bugs mention in release notes for Intune App Factory 1.0.1
+    1.0.2 - (2024-03-04) Added ProductCode string replacement for Deploy-Application.ps1
 #>
 Process {
     # Intitialize variables
@@ -77,7 +78,7 @@ Process {
             $AppPackageFolderPath = Join-Path -Path $SourceDirectory -ChildPath "Apps\$($App.AppFolderName)"
             $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", "Icon.png")
             foreach ($AppFileName in $AppFileNames) {
-                Write-Output -InputObject "[FILE:$($AppFileName)] - Processing"
+                Write-Output -InputObject "[FILE: $($AppFileName)] - Processing"
 
                 # Define path for current app specific file within app package folder in Apps root folder
                 $AppFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath $AppFileName
@@ -102,6 +103,20 @@ Process {
                         $AppFileContent = $AppFileContent -replace "###DATETIME###", (Get-Date).ToShortDateString()
                         Write-Output -InputObject "Setting setup file name to: $($App.AppSetupFileName)"
                         $AppFileContent = $AppFileContent -replace "###SETUPFILENAME###", $($App.AppSetupFileName)
+
+                        # Read and update hardcoded variables with specific MSI data from setup file if file extension is MSI
+                        $SetupFileNameExtension = [System.IO.Path]::GetExtension($App.AppSetupFileName).Trim(".")
+                        if ($SetupFileNameExtension -eq "msi") {
+                            Write-Output -InputObject "Setup file name contains MSI extension, retrieving MSI meta data"
+                            $ProductCode = Get-MSIMetaData -Path $AppInstallerPath -Property "ProductCode"
+                            $ProductCode = ($ProductCode -as [string]).Trim()
+                            Write-Output -InputObject "Setting ProductCode to: $($ProductCode)"
+                            $AppFileContent = $AppFileContent -replace "###PRODUCTCODE###", $ProductCode
+                        }
+                        else {
+                            Write-Output -InputObject "Setup file name does not contain MSI extension, ProductCode will not be set"
+                        }
+
                         $AppsPublishSourcePath = Join-Path -Path $AppsPublishRootPath -ChildPath "$($App.AppFolderName)\Source"
                         $AppDestinationFilePath = Join-Path -Path $AppsPublishSourcePath -ChildPath $AppFileName
                         Write-Output -InputObject "Creating '$($AppFileName)' in: $($AppDestinationFilePath)"
@@ -208,21 +223,61 @@ Process {
                             }
                         }
 
+                        # Copy custom requirement rule script files to script destination folder
+                        foreach ($CustomRequirementRuleScript in $($AppFileContent.CustomRequirementRule | Where-Object { $PSItem.Type -eq "Script" })) {
+                            # Declare the script file source and destination paths
+                            $AppPublishScriptsFolderPath = Join-Path -Path $AppPublishFolderPath -ChildPath "Scripts"
+                            $ScriptFileSource = Join-Path -Path $AppPackageFolderPath -ChildPath $CustomRequirementRuleScript.ScriptFile
+                            $ScriptFileDestination = Join-Path -Path $AppPublishScriptsFolderPath -ChildPath $CustomRequirementRuleScript.ScriptFile
+
+                            # Check if the Scripts folder in the app package folder in the publish root folder, must be created
+                            if (-not(Test-Path -Path $AppPublishScriptsFolderPath)) {
+                                try {
+                                    New-Item -Path $AppPublishScriptsFolderPath -ItemType "Directory" -Force -Confirm:$false -ErrorAction "Stop" | Out-Null
+                                }
+                                catch [System.Exception] {
+                                    Write-Warning -Message "Failed to create folder '$($AppPublishFolderPath)' with message: $($_.Exception.Message)"
+                                }
+                            }
+
+                            try {
+                                # Copy custom requirement rule script file to script destination folder
+                                Write-Output -InputObject "Copying custom requirement rule script file '$($ScriptFileSource)' to: $($ScriptFileDestination)"
+                                Copy-Item -Path $ScriptFileSource -Destination $ScriptFileDestination -Force -ErrorAction "Stop"
+                            }
+                            catch [System.Exception] {
+                                Write-Warning -Message "Failed to copy custom requirement rule script with message: $($_.Exception.Message)"
+                            }
+                        }
+
                         # Save changes made to App.json in app package folder in publish root folder
                         $AppFileDestinationPath = Join-Path -Path $AppPublishFolderPath -ChildPath $AppFileName
                         Write-Output -InputObject "Creating '$($AppFileName)' in: $($AppFileDestinationPath)"
                         Out-File -InputObject ($AppFileContent | ConvertTo-Json) -FilePath $AppFileDestinationPath -Encoding "utf8" -Force -Confirm:$false
                     }
                     "Icon.png" {
-                        # Copy file to app package folder in publish root folder
-                        Write-Output -InputObject "Copying app specific file $($AppFileName) to app package folder in publish root"
-                        Write-Output -InputObject "File path: $($AppFilePath)"
-                        Write-Output -InputObject "Destination path: $($AppFileDestinationPath)"
-                        Copy-Item -Path $AppFilePath -Destination $AppFileDestinationPath -Force -Confirm:$false
+                        # If IconURL attribute is present for current app item, download icon from URL to the app package folder in the publish root folder
+                        if (-not([string]::IsNullOrEmpty($App.IconURL))) {
+                            Write-Output -InputObject "Downloading icon file from URL: $($App.IconURL)"
+                            $IconFilePath = Join-Path -Path $AppPublishFolderPath -ChildPath $AppFileName
+                            Write-Output -InputObject "Destination path: $($AppFileDestinationPath)"
+                            Invoke-WebRequest -Uri $App.IconURL -OutFile $IconFilePath -UseBasicParsing
+                        }
+                        else {
+                            # Copy file to app package folder in publish root folder
+                            Write-Output -InputObject "IconURL attribute was not found, proceeding with copying icon file from app package folder in app folder"
+                            Write-Output -InputObject "Copying app specific file $($AppFileName) to app package folder in publish root"
+                            Write-Output -InputObject "File path: $($AppFilePath)"
+                            Write-Output -InputObject "Destination path: $($AppFileDestinationPath)"
+                            Copy-Item -Path $AppFilePath -Destination $AppFileDestinationPath -Force -Confirm:$false
+                        }
+
+                        # Declare the icon file name to set in the current app item attribute for IconFileName
+                        $IconFileName = $AppFileName
                     }
                 }
 
-                Write-Output -InputObject "[FILE:$($AppFileName)] - Completed"
+                Write-Output -InputObject "[FILE: $($AppFileName)] - Completed"
             }
 
             # Create Package and Source folders in the app package folder root
@@ -235,9 +290,11 @@ Process {
             # Construct new application custom object with required properties
             $AppListItem = [PSCustomObject]@{
                 "IntuneAppName" = $App.IntuneAppName
+                "IntuneAppNamingConvention" = $App.IntuneAppNamingConvention
                 "AppSetupFileName" = $App.AppSetupFileName
                 "AppSetupVersion" = $App.AppSetupVersion
                 "AppPublishFolderPath" = $AppPublishFolderPath
+                "IconFileName" = $IconFileName
             }
 
             # Add to list of applications to be published

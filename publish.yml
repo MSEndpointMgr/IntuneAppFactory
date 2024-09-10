@@ -256,7 +256,7 @@ stages:
 # Stage: 8
 # - Description: Invoke IntuneWin32AppPackager framework script to package and publish new apps to Intune
 # - Input file required: AppsPublishList.json 
-# - Output file created: None
+# - Output file created: AppsAssignList.json
 - stage: publish_apps
   dependsOn:
   - test_environment
@@ -283,3 +283,49 @@ stages:
       inputs:
         filePath: 'Scripts/New-Win32App.ps1'
         arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret) -WorkspaceID $(ReportWorkspaceID) -SharedKey $(LA-IntuneAppFactory-PrimaryKey)
+    - task: PublishBuildArtifacts@1
+      name: publish_artifacts
+      inputs:
+        pathToPublish: $(Build.BinariesDirectory)
+        artifactName: AppsPublishedList
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'
+# Stage: 9
+# - Description: Configure assignments for all applications that were published to Intune
+# - Input file required: AppsAssignList.json (included in AppsPublishedList artifact)
+# - Output file created: None
+- stage: assign_apps
+  dependsOn:
+  - test_environment
+  - prepare_environment
+  - check_app_files
+  - check_new_app_version
+  - download_new_apps
+  - prepare_app_files
+  - publish_apps
+  condition: and(succeeded(), eq(dependencies.publish_apps.outputs['publish_apps.new_app.shouldrun'], 'true'), eq('${{ parameters.operationalMode }}', 'Publish'))
+  jobs:
+  - job: assign_apps
+    timeoutInMinutes: 120
+    steps:
+    - task: DownloadBuildArtifacts@0
+      name: download_assign_artifacts
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: AppsPublishedList
+        downloadPath: '$(Build.ArtifactStagingDirectory)'     
+    - task: PowerShell@2
+      name: assign_app
+      displayName: New-AppAssignment
+      inputs:
+        filePath: 'Scripts/New-AppAssignment.ps1'
+        arguments: -TenantID $(TenantID) -ClientID $(ClientID) -ClientSecret $(SP-IntuneAppFactory-ClientSecret)
+    - task: DeleteFiles@1
+      name: cleanup_artifacts
+      inputs:
+        SourceFolder: '$(Build.BinariesDirectory)'
+        Contents: '**'

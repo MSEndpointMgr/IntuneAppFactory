@@ -4,7 +4,8 @@
         "SetupFile": "Deploy-Application.exe",
         "SourceFolder": "Source",
         "OutputFolder": "Package",
-        "IconFile": "Icon.png"
+        "IconFile": "Icon.png",
+        "IconURL": ""
     },
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
@@ -12,7 +13,8 @@
         "Description": "Install Notepad++",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "",
-        "Owner": ""
+        "Owner": "",
+        "ScopeTagName": ""
     },
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
@@ -21,7 +23,7 @@
         "DeviceRestartBehavior": "suppress"
     },
     "RequirementRule": {
-        "MinimumSupportedWindowsRelease": "W10_21H2",
+        "MinimumSupportedWindowsRelease": "W10_22H2",
         "Architecture": "x64"
     },
     "CustomRequirementRule": [
@@ -35,6 +37,24 @@
             "Operator": "greaterThanOrEqual",
             "Value": "<replaced_by_pipeline>",
             "Check32BitOn64System": "false"
+        }
+    ],
+    "Assignment": [
+        {
+            "Type": "VirtualGroup",
+            "GroupName": "AllDevices",
+            "Intent": "available",
+            "Notification": "showAll",
+            "UseLocalTime": true,
+            "FilterName": "",
+            "FilterMode": "",
+            "AvailableTime": "",
+            "DeadlineTime": "",
+            "DeliveryOptimizationPriority": "",
+            "EnableRestartGracePeriod": "",
+            "RestartGracePeriodInMinutes": "",
+            "RestartCountDownDisplayInMinutes": "",
+            "RestartNotificationSnoozeInMinutes": ""
         }
     ]
 }

@@ -13,15 +13,16 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2022-04-04
+    Updated:     2024-04-17
 
     Version history:
     1.0.0 - (2022-04-04) Script created
+    1.0.1 - (2024-04-17) Updated with assignment file cleanup
 #>
 Process {
     # Intitialize variables
-    $AppsListFileNames = @("AppsProcessList.json", "AppsDownloadList.json", "AppsPrepareList.json", "AppsPublishList.json")
-    $RootFolderNames = @("Installers", "Publish")
+    $AppsListFileNames = @("AppsProcessList.json", "AppsDownloadList.json", "AppsPrepareList.json", "AppsPublishList.json", "AppsAssignList.json")
+    $RootFolderNames = @("Installers", "Publish", "LatestFiles")
 
     # Cleanup previous app list files from workspace
     foreach ($AppsListFileName in $AppsListFileNames) {

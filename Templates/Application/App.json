@@ -4,7 +4,8 @@
         "SetupFile": "Deploy-Application.exe",
         "SourceFolder": "Source",
         "OutputFolder": "Package",
-        "IconFile": "Icon.png"
+        "IconFile": "Icon.png",
+        "IconURL": "https://example.com/icon.png"
     },
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
@@ -12,7 +13,8 @@
         "Description": "<<ENTER_VALUE:[custom_text]>>",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "<<ENTER_VALUE:[custom_text]>>",
-        "Owner": "<<ENTER_VALUE:[custom_text]>>"
+        "Owner": "<<ENTER_VALUE:[custom_text]>>",
+        "ScopeTagName": "<<ENTER_VALUE:[custom_text]>>"
     },
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
@@ -79,6 +81,59 @@
             "ScriptFile": "detection.ps1",
             "EnforceSignatureCheck": "<<SELECT_VALUE:[false, true]>>",
             "RunAs32Bit": "<<SELECT_VALUE:[false, true]>>"
+        },
+        {
+            "Type": "File",
+            "DetectionMethod": "Version",
+            "Path": "C:\\Program Files\\<<ENTER_VALUE:[path]>>",
+            "FileOrFolder": "<<ENTER_VALUE:[file_name_including_extension]>>",
+            "Operator": "<<SELECT_VALUE:[equal, notEqual, greaterThanOrEqual, greaterThan, lessThanOrEqual, lessThan]>>",
+            "VersionValue": "<replaced_by_pipeline>",
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
+        },
+        {
+            "Type": "File",
+            "DetectionMethod": "Version",
+            "Path": "C:\\Program Files (x86)\\<<ENTER_VALUE:[path]>>",
+            "FileOrFolder": "<<ENTER_VALUE:[file_name_including_extension]>>",
+            "Operator": "<<SELECT_VALUE:[equal, notEqual, greaterThanOrEqual, greaterThan, lessThanOrEqual, lessThan]>>",
+            "VersionValue": "<replaced_by_pipeline>",
+            "Check32BitOn64System": "<<SELECT_VALUE:[false, true]>>"
+        }
+    ],
+    "Assignment": [
+        {
+            "Type": "<<SELECT_VALUE[VirtualGroup]>>",
+            "GroupName": "<<SELECT_VALUE:[AllUsers, AllDevices]>>",
+            "Intent": "<<SELECT_VALUE:[available, required, uninstall]>>",
+            "Notification": "<<SELECT_VALUE:[showAll, showReboot, hideAll]>>",
+            "UseLocalTime": "<<SELECT_VALUE:[false, true]>>",
+            "FilterName": "<OPTIONAL_ENTER_VALUE:[filter_name]>>",
+            "FilterMode": "<OPTIONAL_SELECT_VALUE:[include, exclude]>>",
+            "AvailableTime": "<<OPTIONAL_ENTER_VALUE:[dmtfDateTime]>>",
+            "DeadlineTime": "<<OPTIONAL_ENTER_VALUE:[dmtfDateTime]>>",
+            "DeliveryOptimizationPriority": "<<OPTIONAL_SELECT_VALUE:[notConfigured, foreground]>>",
+            "EnableRestartGracePeriod": "<<OPTIONAL_SELECT_VALUE:[false, true]>>",
+            "RestartGracePeriodInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>",
+            "RestartCountDownDisplayInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>",
+            "RestartNotificationSnoozeInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>"
+        },
+        {
+            "Type": "<<SELECT_VALUE[Group]>>",
+            "GroupID": "<<ENTER_VALUE:[group_id]>>",
+            "Intent": "<<SELECT_VALUE:[available, required, uninstall]>>",
+            "GroupMode": "<<SELECT_VALUE:[included, excluded]>>",
+            "Notification": "<<SELECT_VALUE:[showAll, showReboot, hideAll]>>",
+            "UseLocalTime": "<<SELECT_VALUE:[false, true]>>",
+            "FilterName": "<OPTIONAL_ENTER_VALUE:[filter_name]>>",
+            "FilterMode": "<OPTIONAL_SELECT_VALUE:[include, exclude]>>",
+            "AvailableTime": "<<OPTIONAL_ENTER_VALUE:[dmtfDateTime]>>",
+            "DeadlineTime": "<<OPTIONAL_ENTER_VALUE:[dmtfDateTime]>>",
+            "DeliveryOptimizationPriority": "<<OPTIONAL_SELECT_VALUE:[notConfigured, foreground]>>",
+            "EnableRestartGracePeriod": "<<OPTIONAL_SELECT_VALUE:[false, true]>>",
+            "RestartGracePeriodInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>",
+            "RestartCountDownDisplayInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>",
+            "RestartNotificationSnoozeInMinutes": "<<OPTIONAL_ENTER_VALUE:[integer]>>"
         }
     ]
 }

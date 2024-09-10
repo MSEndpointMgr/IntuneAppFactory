@@ -4,13 +4,13 @@
         "SetupFile": "Deploy-Application.exe",
         "SourceFolder": "Source",
         "OutputFolder": "Package",
-        "IconFile": "",
-        "IconURL": "https://mseazdevopsapps.blob.core.windows.net/icons/7Zip.png"
+        "IconFile": "Icon.png",
+        "IconURL": ""
     },
     "Information": {
         "DisplayName": "<replaced_by_pipeline>",
         "AppVersion": "<replaced_by_pipeline>",
-        "Description": "Install 7-Zip",
+        "Description": "Install VLC",
         "Publisher": "<replaced_by_pipeline>",
         "Notes": "",
         "Owner": "",
@@ -30,13 +30,10 @@
     ],
     "DetectionRule": [
         {
-            "Type": "Registry",
-            "DetectionMethod": "VersionComparison",
-            "KeyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\###PRODUCTCODE###",
-            "ValueName": "DisplayVersion",
-            "Operator": "greaterThanOrEqual",
-            "Value": "<replaced_by_pipeline>",
-            "Check32BitOn64System": "false"
+            "Type": "MSI",
+            "ProductCode": "<replaced_by_pipeline>",
+            "ProductVersionOperator": "greaterThanOrEqual",
+            "ProductVersion": "<replaced_by_pipeline>"
         }
     ],
     "Assignment": [

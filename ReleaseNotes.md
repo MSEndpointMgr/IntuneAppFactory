@@ -1,5 +1,22 @@
 # Release notes for IntuneAppFactory
 
+## 1.1.0
+- A new required property in the appList.json file called `IntuneAppNamingConvention` has been added, with the following possible values: `PublisherAppNameAppVersion`, `PublisherAppName`, `AppNameAppVersion` or `AppName`. This property controls how the application published to Intune will be named. For example, if the `IntuneAppNamingConvention` property is set to `PublisherAppName`, the name of the application in Intune would be a combination of the `AppPublisher` and the `IntuneAppName` properties, resulting in e.g. 'Igor Pavlov 7-Zip'.
+- Fixed a bug in the `Get-EvergreenAppItem` function referenced in issue #18.
+- Added support for downloading icons from a URL, instead of adding them to the app specific package folder. In the `App.json` file, a new property named `IconURL` can now be used to leverage this new functionality. Simply, just add the direct URL to the image file to be used as the icon for the application.
+- Fixed a bug referenced in issue #14.
+- Property `AppSetupFileName` in the `appList.json` file is now obsolete. The file name is now automatically determined and reflected in the preparation phase.
+- Improvements added to the `Install-Modules.ps1` script file, it's now a bit faster.
+- A new phase in the `publish.yml` file named `assign_apps` has been added, to handle the assignment configuration defined in the `App.json` files.
+- Additional filter options for applications using Evergreen as source has been added. New supported values includes: `ImageType`, `Release`, `Edition`, `Ring` and `Language`.
+- Template file `Icon.png` has been moved from the Framework folder to the Application folder in the Template folder structure.
+- Function `Save-Installer` has been updated to better support redirections, that might occur for sites such as SourceForge.
+- Function `Save-Installer` has been updated to handle retries when attempting to download the setup files.
+- Winget supports installer type of Zip, which translates to a setup installer being compressed into an archive file. Added functionality to automatically expand the downloaded archive file and detect the proper setup file within the archive.
+- Scope Tag support has been added, by using a new property named `ScopeTagName` in the App.json file under the `Information` section.
+- Any string matching `###ProductCode###` specified in the `Deploy-Application.ps1` script file is automatically replaced with the Product Code value of the MSI, similar to how the Product Code can be inserted into detection rule logic or the setup app file name.
+- Added a few more detection rule templates to the `App.json` template file.
+
 ## 1.0.2
 - Switched download method used for app source type of StorageAccount from using Invoke-WebRequest to Az.Storage module in the `Save-Installer.ps1` script. This was forgotten when 1.0.1 was released, and would not work if public access to the Storage Account was disabled. This change also requires an update to the publish.yml pipeline file, where the Storage Account Key is passed in as parameter.
 - Application version comparison code in `Test-AppList.ps1` is now using the functions from the MSGraphRequest module instead on relying on the IntuneWin32App module, for better error handling and stability.

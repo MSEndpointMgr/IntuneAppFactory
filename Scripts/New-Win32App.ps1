@@ -13,11 +13,12 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-20
-    Updated:     2023-05-29
+    Updated:     2024-03-04
 
     Version history:
     1.0.0 - (2020-09-26) Script created
     1.0.1 - (2023-05-29) Fixed bugs mention in release notes for Intune App Factory 1.0.1
+    1.0.2 - (2024-03-04) Added support for ScopeTagName parameter, added Assignment handling
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -138,7 +139,14 @@ Process {
         }
     }
 
-    # Intitialize variables
+    # Construct path for AppsAssignList.json
+    $AppsAssignListFileName = "AppsAssignList.json"
+    $AppsAssignListFilePath = Join-Path -Path $env:BUILD_BINARIESDIRECTORY -ChildPath $AppsAssignListFileName
+
+    # Construct list of applications to be assigned in the next stage
+    $AppsAssignList = New-Object -TypeName "System.Collections.ArrayList"
+
+    # Construct path for AppsPublishList.json file created in previous stage
     $AppsPublishListFileName = "AppsPublishList.json"
     $AppsPublishListFilePath = Join-Path -Path (Join-Path -Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY -ChildPath "AppsPublishList") -ChildPath $AppsPublishListFileName
 
@@ -158,14 +166,14 @@ Process {
             $AppDataFile = Join-Path -Path $App.AppPublishFolderPath -ChildPath "App.json"
             $AppData = Get-Content -Path $AppDataFile | ConvertFrom-Json
 
-            # Required packaging variablesg
+            # Required packaging variables
             $SourceFolder = Join-Path -Path $App.AppPublishFolderPath -ChildPath $AppData.PackageInformation.SourceFolder
             Write-Output -InputObject "Using Source folder path: $($SourceFolder)"
             $OutputFolder = Join-Path -Path $App.AppPublishFolderPath -ChildPath $AppData.PackageInformation.OutputFolder
             Write-Output -InputObject "Using Output folder path: $($OutputFolder)"
             $ScriptsFolder = Join-Path -Path $App.AppPublishFolderPath -ChildPath "Scripts"
             Write-Output -InputObject "Using Scripts folder path: $($ScriptsFolder)"
-            $AppIconFile = Join-Path -Path $App.AppPublishFolderPath -ChildPath $AppData.PackageInformation.IconFile
+            $AppIconFile = Join-Path -Path $App.AppPublishFolderPath -ChildPath $App.IconFileName
             Write-Output -InputObject "Using icon file path: $($AppIconFile)"
 
             # Create required .intunewin package from source folder
@@ -535,10 +543,34 @@ Process {
                 $Icon = New-IntuneWin32AppIcon -FilePath $AppIconFile
             }
 
+            # Determine the DisplayName for the Win32 app depending on the IntuneAppNamingConvention setting
+            switch ($App.IntuneAppNamingConvention) {
+                "PublisherAppNameAppVersion" {
+                    $DisplayName = -join@($AppData.Information.Publisher, " ", $AppData.Information.DisplayName, " ", $AppData.Information.AppVersion)
+                }
+                "PublisherAppName" {
+                    $DisplayName = -join@($AppData.Information.Publisher, " ", $AppData.Information.DisplayName)
+                }
+                "AppNameAppVersion" {
+                    $DisplayName = -join@($AppData.Information.DisplayName, " ", $AppData.Information.AppVersion)
+                }
+                "AppName" {
+                    $DisplayName = $AppData.Information.DisplayName
+                }
+                default {
+                    $DisplayName = $AppData.Information.DisplayName
+                }
+            }
+
+            # Handle DisplayName fallback if DisplayName is empty
+            if ($App.IntuneAppNamingConvention -eq $null) {
+                $DisplayName = $AppData.Information.DisplayName
+            }
+
             # Construct a table of default parameters for Win32 app
             $Win32AppArgs = @{
                 "FilePath" = $IntuneAppPackage.Path
-                "DisplayName" = $AppData.Information.DisplayName
+                "DisplayName" = $DisplayName
                 "AppVersion" = $AppData.Information.AppVersion
                 "Description" = $AppData.Information.Description
                 "Publisher" = $AppData.Information.Publisher
@@ -546,6 +578,7 @@ Process {
                 "RestartBehavior" = $AppData.Program.DeviceRestartBehavior
                 "DetectionRule" = $DetectionRules
                 "RequirementRule" = $RequirementRule
+                "ErrorAction" = "Stop"
             }
 
             # Dynamically add additional parameters for Win32 app
@@ -572,22 +605,74 @@ Process {
                     $Win32AppArgs.Add("AllowAvailableUninstall", $true)
                 }
             }
-
-            # Create Win32 app
-            Write-Output -InputObject "Creating Win32 application"
-            $Win32App = Add-IntuneWin32App @Win32AppArgs
-
-            # Send Log Analytics payload with published app details
-            Write-Output -InputObject "Sending Log Analytics payload with published app details"
-            $PayloadBody = @{
-                AppName = $AppData.Information.DisplayName
-                AppVersion = $AppData.Information.AppVersion
-                AppPublisher = $AppData.Information.Publisher
+            if (-not([string]::IsNullOrEmpty($AppData.Information.ScopeTagName))) {
+                $Win32AppArgs.Add("ScopeTagName", $AppData.Information.ScopeTagName)
             }
-            Send-LogAnalyticsPayload -WorkspaceID $WorkspaceID -SharedKey $SharedKey -Body ($PayloadBody | ConvertTo-Json) -LogType "IntuneAppFactory"
+
+            try {
+                # Create Win32 app
+                Write-Output -InputObject "Creating Win32 application"
+                Write-Output -InputObject $Win32AppArgs
+                $Win32App = Add-IntuneWin32App @Win32AppArgs
+
+                try {
+                    # Send Log Analytics payload with published app details
+                    Write-Output -InputObject "Sending Log Analytics payload with published app details"
+                    $PayloadBody = @{
+                        "AppName" = $AppData.Information.DisplayName
+                        "AppVersion" = $AppData.Information.AppVersion
+                        "AppPublisher" = $AppData.Information.Publisher
+                    }
+                    Send-LogAnalyticsPayload -WorkspaceID $WorkspaceID -SharedKey $SharedKey -Body ($PayloadBody | ConvertTo-Json) -LogType "IntuneAppFactory" -ErrorAction "Stop"
+                }
+                catch [System.Exception] {
+                    Write-Output -InputObject "Failed to send Win32 application publication message to Log Analytics workspace"
+                }
+
+                try {
+                    # Construct new application custom object with required properties
+                    $AppListItem = [PSCustomObject]@{
+                        "IntuneAppName" = $App.IntuneAppName
+                        "IntuneAppObjectID" = $Win32App.id
+                        "AppPublishFolderPath" = $App.AppPublishFolderPath
+                        "AppSetupFileName" = $App.AppSetupFileName
+                        "AppPublishPackageFolder" = $OutputFolder
+                        "AppPublishPackageFileName" = $IntuneAppPackage.FileName
+                    }
+
+                    # Add to list of applications to be assigned
+                    $AppsAssignList.Add($AppListItem) | Out-Null
+                }
+                catch [System.Exception] {
+                    Write-Output -InputObject "Failed to create AppsAssignList.json file. Error: $($_.Exception.Message)"
+                }
+            }
+            catch [System.Exception] {
+                Write-Output -InputObject "Failed to publish Win32 application. Error: $($_.Exception.Message)"
+            }
 
             # Handle current application output completed message
             Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Completed"
+        }
+
+        # Construct new json file with new applications to be assigned
+        if ($AppsAssignList.Count -ge 1) {
+            $AppsAssignListJSON = $AppsAssignList | ConvertTo-Json -Depth 3
+            Write-Output -InputObject "Creating '$($AppsAssignListFileName)' in: $($AppsAssignListFilePath)"
+            Write-Output -InputObject "App list file contains the following items: $($AppsAssignList.IntuneAppName -join ", ")"
+            Out-File -InputObject $AppsAssignListJSON -FilePath $AppsAssignListFilePath -NoClobber -Force -ErrorAction "Stop"
+        }
+
+        # Handle next stage execution or not if no new applications are to be assigned
+        if ($AppsAssignList.Count -eq 0) {
+            # Don't allow pipeline to continue
+            Write-Output -InputObject "No new applications to be assigned, aborting pipeline"
+            Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]false"
+        }
+        else {
+            # Allow pipeline to continue
+            Write-Output -InputObject "Allowing pipeline to continue execution"
+            Write-Output -InputObject "##vso[task.setvariable variable=shouldrun;isOutput=true]true"
         }
     }
     else {

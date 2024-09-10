@@ -10,6 +10,7 @@
     - ..\Deploy-Application.ps1
     - ..\Detection.ps1
     - ..\latest.json
+    - ..\Icon.png
 
     Framework folder must contain the following files and folders:
     - ..\Source\AppDeployToolkit\<related-files-and-folders>
@@ -18,7 +19,6 @@
     - ..\Source\Deploy-Application.exe
     - ..\Source\Deploy-Application.config.exe
     - ..\Source\Deploy-Application.ps1
-    - ..\Icon.png
 
 .EXAMPLE
     .\Test-TemplatesFolder.ps1
@@ -28,18 +28,20 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-11-16
-    Updated:     2022-11-16
+    Updated:     2024-03-04
 
     Version history:
     1.0.0 - (2022-11-16) Script created
+    1.0.1 - (2023-05-05) Added support for testing TestBase folder
+    1.0.2 - (2024-03-04) Icon.png file added to Application folder instead of Framework folder, removed support for TestBase since it's been deprecated
 #>
 Process {
     # Initialize variables
     $TemplatesFolderNames = @("Application", "Framework")
-    $ApplicationFolderFileNames = @("App.json", "Deploy-Application.ps1", "Detection.ps1", "latest.json")
+    $ApplicationFolderFileNames = @("App.json", "Deploy-Application.ps1", "Detection.ps1", "latest.json", "Icon.png")
     $FrameworkSourceFolderNames = @("AppDeployToolkit")
     $FrameworkSourceFileNames = @("Deploy-Application.exe", "Deploy-Application.exe.config", "Deploy-Application.ps1")
-    $FrameworkFolderFileNames = @("Icon.png")
+    $FrameworkFolderFileNames = @()
 
     # Define source directory variable
     $SourceDirectory = $env:BUILD_SOURCESDIRECTORY
