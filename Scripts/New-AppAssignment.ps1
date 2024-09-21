@@ -20,25 +20,38 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$TenantID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
     [ValidateNotNullOrEmpty()]
-    [string]$ClientSecret
+    [string]$ClientSecret,
+    
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
+    [ValidateNotNullOrEmpty()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2]$ClientCertificate
 )
 Process {
     # Construct path for AppsAssignList.json file created in previous stage
     $AppsAssignListFileName = "AppsAssignList.json"
     $AppsAssignListFilePath = Join-Path -Path (Join-Path -Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY -ChildPath "AppsPublishedList") -ChildPath $AppsAssignListFileName
 
-    # Retrieve authentication token using client secret from key vault
-    $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+    # Retrieve authentication token using client secret from key vault or client certificate
+    switch ($PSCmdlet.ParameterSetName) {
+        "ClientSecret" {
+            $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+        }
+        "ClientCertificate" {
+            $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientCert $ClientCertificate -ErrorAction "Stop"
+        }
+    }
 
     if (Test-Path -Path $AppsAssignListFilePath) {
         # Read content from AppsAssignList.json file and convert from JSON format

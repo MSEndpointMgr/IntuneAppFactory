@@ -22,23 +22,31 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$TenantID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientSecret,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
+    [ValidateNotNullOrEmpty()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2]$ClientCertificate,
+
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$WorkspaceID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$SharedKey
 )
@@ -150,8 +158,15 @@ Process {
     $AppsPublishListFileName = "AppsPublishList.json"
     $AppsPublishListFilePath = Join-Path -Path (Join-Path -Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY -ChildPath "AppsPublishList") -ChildPath $AppsPublishListFileName
 
-    # Retrieve authentication token using client secret from key vault
-    $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+    # Retrieve authentication token using client secret from key vault or client certificate
+    switch ($PSCmdlet.ParameterSetName) {
+        "ClientSecret" {
+            $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+        }
+        "ClientCertificate" {
+            $AuthToken = Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientCert $ClientCertificate -ErrorAction "Stop"
+        }
+    }
 
     if (Test-Path -Path $AppsPublishListFilePath) {
         # Read content from AppsPublishList.json file and convert from JSON format

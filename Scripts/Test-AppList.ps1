@@ -26,19 +26,26 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$TenantID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientSecret,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
+    [ValidateNotNullOrEmpty()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2]$ClientCertificate,
+
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$StorageAccountAccessKey
 )
@@ -285,8 +292,15 @@ Process {
     $SourceDirectory = $env:BUILD_SOURCESDIRECTORY
 
     try {
-        # Authenticate with MS Graph using client secret from key vault
-        Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop" | Out-Null
+        # Authenticate with MS Graph using client secret from key vault or client certificate
+        switch ($PSCmdlet.ParameterSetName) {
+            "ClientSecret" {
+                Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop" | Out-Null
+            }
+            "ClientCertificate" {
+                Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientCert $ClientCertificate -ErrorAction "Stop" | Out-Null
+            }
+        }
 
         # Construct list of applications to be processed in the next stage
         $AppsDownloadList = New-Object -TypeName "System.Collections.ArrayList"
