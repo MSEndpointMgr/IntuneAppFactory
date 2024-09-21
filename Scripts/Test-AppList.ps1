@@ -26,19 +26,26 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$TenantID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientID,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
     [ValidateNotNullOrEmpty()]
     [string]$ClientSecret,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
+    [ValidateNotNullOrEmpty()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2]$ClientCertificate,
+
+    [parameter(Mandatory = $true, ParameterSetName = "ClientSecret")]
+    [parameter(Mandatory = $true, ParameterSetName = "ClientCertificate")]
     [ValidateNotNullOrEmpty()]
     [string]$StorageAccountAccessKey
 )
@@ -285,8 +292,15 @@ Process {
     $SourceDirectory = $env:BUILD_SOURCESDIRECTORY
 
     try {
-        # Retrieve authentication token using client secret from key vault
-        $AuthToken = Get-AccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop"
+        # Authenticate with MS Graph using client secret from key vault or client certificate
+        switch ($PSCmdlet.ParameterSetName) {
+            "ClientSecret" {
+                Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction "Stop" | Out-Null
+            }
+            "ClientCertificate" {
+                Connect-MSIntuneGraph -TenantID $TenantID -ClientID $ClientID -ClientCert $ClientCertificate -ErrorAction "Stop" | Out-Null
+            }
+        }
 
         # Construct list of applications to be processed in the next stage
         $AppsDownloadList = New-Object -TypeName "System.Collections.ArrayList"
@@ -341,8 +355,12 @@ Process {
                     Write-Output -InputObject "URI: $($AppItem.URI)"
 
                     try {
-                        # Attempt to deserialize the setup file name from the URI
-                        $AppSetupFileName = [Uri]$AppItem.URI | Select-Object -ExpandProperty "Segments" | Select-Object -Last 1
+                        # Determine app setup file name
+                        $AppSetupFileName = $App.AppSetupFileName
+                        if ([string]::IsNullOrEmpty($AppSetupFileName)) {
+                            # Attempt to deserialize the setup file name from the URI
+                            $AppSetupFileName = [Uri]$AppItem.URI | Select-Object -ExpandProperty "Segments" | Select-Object -Last 1
+                        }
                         Write-Output -InputObject "Setup file name: $($AppSetupFileName)"
 
                         try {
@@ -365,64 +383,53 @@ Process {
                                 }
                             }
                             
-                            # Attempt to locate the application in Intune
+                            # Attempt to locate the application in Intune matching DisplayName
                             Write-Output -InputObject "Attempting to find application in Intune using naming convention: $($AppDisplayName)"
-                            $Win32AppResources = Invoke-MSGraphOperation -Get -APIVersion "Beta" -Resource "deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')"
-                            if ($Win32AppResources -ne $null) {
-
-                                # Detect Win32 application matching displayName
-                                $Win32Apps = $Win32AppResources | Where-Object { $PSItem.displayName -like "$($AppDisplayName)*" }
-                                if ($Win32Apps -ne $null) {
-                                    $Win32AppsCount = ($Win32Apps | Measure-Object).Count
-                                    Write-Output -InputObject "Count of detected Intune Win32 applications: $($Win32AppsCount)"
-                                }
-                                else {
-                                    Write-Output -InputObject "Application with defined name '$($AppDisplayName)' was not found, adding to download list"
-    
-                                    # Mark new application to be published
-                                    $AppDownload = $true
-                                }
-    
-                                # Filter for the latest version published in Intune, if multiple applications objects was detected
-                                $Win32AppLatestPublishedVersion = $Win32Apps.displayVersion | Where-Object { $PSItem -as [System.Version] } | Sort-Object { [System.Version]$PSItem } -Descending | Select-Object -First 1
-    
-                                # Version validation and conversion if necessary
-                                if (Test-Version -Version $AppItem.Version) {
-                                    Write-Output -InputObject "Version string is valid"
-                                }
-                                else {
-                                    Write-Output -InputObject "Version string contains invalid characters, attempting to convert"
-                                    $AppItem.Version = ConvertTo-Version -Version $AppItem.Version
-                                    Write-Output -InputObject "Converted version string: $($AppItem.Version)"
-                                }
-
-                                # Perform version comparison check
-                                Write-Output -InputObject "Performing version comparison check to determine if a newer version of the application exists"
-                                if ([System.Version]$AppItem.Version -gt [System.Version]$Win32AppLatestPublishedVersion) {
-                                    # Determine value for published version if not found
-                                    if ($Win32AppLatestPublishedVersion -eq $null) {
-                                        $Win32AppLatestPublishedVersion = "Not found"
-                                    }
-
-                                    Write-Output -InputObject "Newer version exists for application, version details:"
-                                    Write-Output -InputObject "Latest version: $($AppItem.Version)"
-                                    Write-Output -InputObject "Published version: $($Win32AppLatestPublishedVersion)"
-                                    Write-Output -InputObject "Adding application to download list"
-                                    
-                                    # Mark new application version to be published
-                                    $AppDownload = $true
-                                }
-                                else {
-                                    Write-Output -InputObject "Latest version of application is already published"
-                                }
+                            $Win32Apps = Get-IntuneWin32App -DisplayName $AppDisplayName
+                            if ($Win32Apps -ne $null) {
+                                $Win32AppsCount = ($Win32Apps | Measure-Object).Count
+                                Write-Output -InputObject "Count of detected Intune Win32 applications: $($Win32AppsCount)"
                             }
                             else {
-                                Write-Warning -Message "Unhandled error occurred, application will be skipped"
-    
-                                # Handle current application output completed message
-                                Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Skipped"
+                                Write-Output -InputObject "Application with defined name '$($AppDisplayName)' was not found, adding to download list"
+
+                                # Mark new application to be published
+                                $AppDownload = $true
                             }
-    
+
+                            # Filter for the latest version published in Intune, if multiple applications objects was detected
+                            $Win32AppLatestPublishedVersion = $Win32Apps.displayVersion | Where-Object { $PSItem -as [System.Version] } | Sort-Object { [System.Version]$PSItem } -Descending | Select-Object -First 1
+
+                            # Version validation and conversion if necessary
+                            if (Test-Version -Version $AppItem.Version) {
+                                Write-Output -InputObject "Version string is valid"
+                            }
+                            else {
+                                Write-Output -InputObject "Version string contains invalid characters, attempting to convert"
+                                $AppItem.Version = ConvertTo-Version -Version $AppItem.Version
+                                Write-Output -InputObject "Converted version string: $($AppItem.Version)"
+                            }
+
+                            # Perform version comparison check
+                            Write-Output -InputObject "Performing version comparison check to determine if a newer version of the application exists"
+                            if ([System.Version]$AppItem.Version -gt [System.Version]$Win32AppLatestPublishedVersion) {
+                                # Determine value for published version if not found
+                                if ($Win32AppLatestPublishedVersion -eq $null) {
+                                    $Win32AppLatestPublishedVersion = "Not found"
+                                }
+
+                                Write-Output -InputObject "Newer version exists for application, version details:"
+                                Write-Output -InputObject "Latest version: $($AppItem.Version)"
+                                Write-Output -InputObject "Published version: $($Win32AppLatestPublishedVersion)"
+                                Write-Output -InputObject "Adding application to download list"
+                                
+                                # Mark new application version to be published
+                                $AppDownload = $true
+                            }
+                            else {
+                                Write-Output -InputObject "Latest version of application is already published"
+                            }
+
                             # Add current app to list if publishing is required
                             if ($AppDownload -eq $true) {
                                 # Construct new application custom object with required properties

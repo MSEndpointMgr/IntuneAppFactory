@@ -23,7 +23,7 @@ Process {
     # Ensure package provider is installed
     $PackageProvider = Install-PackageProvider -Name "NuGet" -Force
 
-    $Modules = @("Evergreen", "IntuneWin32App", "Az.Storage", "Az.Resources", "MSGraphRequest")
+    $Modules = @("Evergreen", "IntuneWin32App", "Az.Storage", "Az.Resources")
     foreach ($Module in $Modules) {
         try {
             Write-Output -InputObject "Attempting to locate module: $($Module)"
@@ -46,7 +46,7 @@ Process {
             }
             else {
                 Write-Output -InputObject "Attempting to install module: $($Module)"
-                $InstallModuleInvocation = Install-Module -Name $Module -Force -AllowClobber -ErrorAction "Stop" -Confirm:$false -Verbose:$false
+                $InstallModuleInvocation = Install-Module -Name $Module -Force -ErrorAction "Stop" -Confirm:$false -Verbose:$false
                 Write-Output -InputObject "Module $($Module) installed successfully"
             }
         }

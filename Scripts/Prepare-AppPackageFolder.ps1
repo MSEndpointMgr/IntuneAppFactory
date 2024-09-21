@@ -61,14 +61,14 @@ Process {
             Copy-Item -Path "$($FrameworkPath)\*" -Destination $AppPublishFolderPath -Recurse -Force -Confirm:$false
 
             # Create Files folder in Source folder if not found
-            $AppsPublishSourceFilesPath = Join-Path -Path $AppsPublishRootPath -ChildPath "$($App.AppFolderName)\Source\Files"
-            if (-not(Test-Path -Path $AppsPublishSourceFilesPath)) {
-                New-Item -Path $AppsPublishSourceFilesPath -ItemType "Directory" -Force -Confirm:$false | Out-Null
+            $AppPublishSourceFilesPath = Join-Path -Path $AppPublishFolderPath -ChildPath "Source\Files"
+            if (-not(Test-Path -Path $AppPublishSourceFilesPath)) {
+                New-Item -Path $AppPublishSourceFilesPath -ItemType "Directory" -Force -Confirm:$false | Out-Null
             }
 
             # Copy app specific installer from downloaded app package path to publish folder
             $AppInstallerPath = Join-Path -Path $App.AppSetupFolderPath -ChildPath $App.AppSetupFileName
-            $AppInstallerDestinationPath = Join-Path -Path $AppPublishFolderPath -ChildPath "Source\Files\$($App.AppSetupFileName)"
+            $AppInstallerDestinationPath = Join-Path -Path $AppPublishSourceFilesPath -ChildPath $App.AppSetupFileName
             Write-Output -InputObject "Copying installer file from app package download folder"
             Write-Output -InputObject "Source path: $($AppInstallerPath)"
             Write-Output -InputObject "Destination path: $($AppInstallerDestinationPath)"
@@ -76,7 +76,21 @@ Process {
 
             # Copy all required app specific files from app package folder in Apps root folder to publish folder
             $AppPackageFolderPath = Join-Path -Path $SourceDirectory -ChildPath "Apps\$($App.AppFolderName)"
-            $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", "Icon.png")
+
+            # Copy SupportFiles folder from app package folder in Apps root to Source folder if it exists and is not empty
+            $AppSupportFilesPath = Join-Path -Path $AppPackageFolderPath -ChildPath "SupportFiles"
+            if (Test-Path -Path "$AppSupportFilesPath\*") {
+                Copy-Item -Path $AppSupportFilesPath -Destination "$AppPublishFolderPath\Source" -Container -Recurse -Force -Confirm:$false
+            }
+
+            # Read app specific App.json manifest and convert from JSON
+            $AppDataFile = Join-Path -Path $AppPackageFolderPath -ChildPath "App.json"
+            $AppData = Get-Content -Path $AppDataFile | ConvertFrom-Json
+
+            # Get app icon file name
+            $IconFileName = if (-not([string]::IsNullOrEmpty($AppData.PackageInformation.IconFile))) { $AppData.PackageInformation.IconFile } else { "Icon.png" }
+
+            $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", $IconFileName)
             foreach ($AppFileName in $AppFileNames) {
                 Write-Output -InputObject "[FILE: $($AppFileName)] - Processing"
 
@@ -102,7 +116,25 @@ Process {
                         Write-Output -InputObject "Setting timestamp to: $((Get-Date).ToShortDateString())"
                         $AppFileContent = $AppFileContent -replace "###DATETIME###", (Get-Date).ToShortDateString()
                         Write-Output -InputObject "Setting setup file name to: $($App.AppSetupFileName)"
-                        $AppFileContent = $AppFileContent -replace "###SETUPFILENAME###", $($App.AppSetupFileName)
+                        $AppFileContent = $AppFileContent -replace "###SETUPFILENAME###", $App.AppSetupFileName
+                        Write-Output -InputObject "Setting PSADT pre-install section to: $($AppData.PSADT.PreInstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREINSTALLSECTION###", $AppData.PSADT.PreInstallSection
+                        Write-Output -InputObject "Setting PSADT install section to: $($AppData.PSADT.InstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###INSTALLSECTION###", $AppData.PSADT.InstallSection
+                        Write-Output -InputObject "Setting PSADT post-install section to: $($AppData.PSADT.PostInstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTINSTALLSECTION###", $AppData.PSADT.PostInstallSection
+                        Write-Output -InputObject "Setting PSADT pre-uninstall section to: $($AppData.PSADT.PreUninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREUNINSTALLSECTION###", $AppData.PSADT.PreUninstallSection
+                        Write-Output -InputObject "Setting PSADT uninstall section to: $($AppData.PSADT.UninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###UNINSTALLSECTION###", $AppData.PSADT.UninstallSection
+                        Write-Output -InputObject "Setting PSADT post-uninstall section to: $($AppData.PSADT.PostUninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTUNINSTALLSECTION###", $AppData.PSADT.PostUninstallSection
+                        Write-Output -InputObject "Setting PSADT pre-repair section to: $($AppData.PSADT.PreRepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREREPAIRSECTION###", $AppData.PSADT.PreRepairSection
+                        Write-Output -InputObject "Setting PSADT repair section to: $($AppData.PSADT.RepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###REPAIRSECTION###", $AppData.PSADT.RepairSection
+                        Write-Output -InputObject "Setting PSADT post-repair section to: $($AppData.PSADT.PostRepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTREPAIRSECTION###", $AppData.PSADT.PostRepairSection
 
                         # Read and update hardcoded variables with specific MSI data from setup file if file extension is MSI
                         $SetupFileNameExtension = [System.IO.Path]::GetExtension($App.AppSetupFileName).Trim(".")
@@ -128,6 +160,12 @@ Process {
                         Write-Output -InputObject "File path: $($AppFilePath)"
                         $AppFileContent = Get-Content -Path $AppFilePath | ConvertFrom-Json
                         
+                        # Add timestamp to Notes property
+                        if ($AppFileContent.Information.Notes -match "(\#{3})DATETIME(\#{3})") {
+                            Write-Output -InputObject "Setting Notes timestamp to: $(Get-Date -Format yyyy-MM-dd)"
+                            $AppFileContent.Information.Notes = $AppFileContent.Information.Notes -replace "###DATETIME###", (Get-Date -Format yyyy-MM-dd)
+                        }
+
                         # Update version specific property values
                         $AppFileContent.Information.DisplayName = $App.IntuneAppName
                         $AppFileContent.Information.AppVersion = $App.AppSetupVersion
@@ -255,7 +293,7 @@ Process {
                         Write-Output -InputObject "Creating '$($AppFileName)' in: $($AppFileDestinationPath)"
                         Out-File -InputObject ($AppFileContent | ConvertTo-Json) -FilePath $AppFileDestinationPath -Encoding "utf8" -Force -Confirm:$false
                     }
-                    "Icon.png" {
+                    $IconFileName {
                         # If IconURL attribute is present for current app item, download icon from URL to the app package folder in the publish root folder
                         if (-not([string]::IsNullOrEmpty($App.IconURL))) {
                             Write-Output -InputObject "Downloading icon file from URL: $($App.IconURL)"
@@ -271,9 +309,6 @@ Process {
                             Write-Output -InputObject "Destination path: $($AppFileDestinationPath)"
                             Copy-Item -Path $AppFilePath -Destination $AppFileDestinationPath -Force -Confirm:$false
                         }
-
-                        # Declare the icon file name to set in the current app item attribute for IconFileName
-                        $IconFileName = $AppFileName
                     }
                 }
 
