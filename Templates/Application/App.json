@@ -23,6 +23,17 @@
         "DeviceRestartBehavior": "<<SELECT_VALUE:[suppress, force, basedOnReturnCode, allow]>>",
         "AllowAvailableUninstall": "<<SELECT_VALUE:[true, false]>>"
     },
+    "PSADT": {
+        "PreInstallSection": "",
+        "InstallSection": "<<ENTER_VALUE>>",
+        "PostInstallSection": "",
+        "PreUninstallSection": "",
+        "UninstallSection": "<<ENTER_VALUE>>",
+        "PostUninstallSection": "",
+        "PreRepairSection": "",
+        "RepairSection": "",
+        "PostRepairSection": ""
+    },
     "RequirementRule": {
         "MinimumSupportedWindowsRelease": "<<SELECT_VALUE:[W10_1607, W10_1703, W10_1709, W10_1809, W10_1909, W10_2004, W10_20H2, W10_21H1, W10_21H2, W10_22H2, W11_21H2, W11_22H2]>>",
         "Architecture": "<<SELECT_VALUE:[All, x64, x86]>>"

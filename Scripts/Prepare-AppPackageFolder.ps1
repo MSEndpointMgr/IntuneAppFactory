@@ -102,7 +102,25 @@ Process {
                         Write-Output -InputObject "Setting timestamp to: $((Get-Date).ToShortDateString())"
                         $AppFileContent = $AppFileContent -replace "###DATETIME###", (Get-Date).ToShortDateString()
                         Write-Output -InputObject "Setting setup file name to: $($App.AppSetupFileName)"
-                        $AppFileContent = $AppFileContent -replace "###SETUPFILENAME###", $($App.AppSetupFileName)
+                        $AppFileContent = $AppFileContent -replace "###SETUPFILENAME###", $App.AppSetupFileName
+                        Write-Output -InputObject "Setting PSADT pre-install section to: $($AppData.PSADT.PreInstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREINSTALLSECTION###", $AppData.PSADT.PreInstallSection
+                        Write-Output -InputObject "Setting PSADT install section to: $($AppData.PSADT.InstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###INSTALLSECTION###", $AppData.PSADT.InstallSection
+                        Write-Output -InputObject "Setting PSADT post-install section to: $($AppData.PSADT.PostInstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTINSTALLSECTION###", $AppData.PSADT.PostInstallSection
+                        Write-Output -InputObject "Setting PSADT pre-uninstall section to: $($AppData.PSADT.PreUninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREUNINSTALLSECTION###", $AppData.PSADT.PreUninstallSection
+                        Write-Output -InputObject "Setting PSADT uninstall section to: $($AppData.PSADT.UninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###UNINSTALLSECTION###", $AppData.PSADT.UninstallSection
+                        Write-Output -InputObject "Setting PSADT post-uninstall section to: $($AppData.PSADT.PostUninstallSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTUNINSTALLSECTION###", $AppData.PSADT.PostUninstallSection
+                        Write-Output -InputObject "Setting PSADT pre-repair section to: $($AppData.PSADT.PreRepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###PREREPAIRSECTION###", $AppData.PSADT.PreRepairSection
+                        Write-Output -InputObject "Setting PSADT repair section to: $($AppData.PSADT.RepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###REPAIRSECTION###", $AppData.PSADT.RepairSection
+                        Write-Output -InputObject "Setting PSADT post-repair section to: $($AppData.PSADT.PostRepairSection)"
+                        $AppFileContent = $AppFileContent -replace "###POSTREPAIRSECTION###", $AppData.PSADT.PostRepairSection
 
                         # Read and update hardcoded variables with specific MSI data from setup file if file extension is MSI
                         $SetupFileNameExtension = [System.IO.Path]::GetExtension($App.AppSetupFileName).Trim(".")

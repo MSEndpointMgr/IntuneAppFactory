@@ -126,6 +126,7 @@ Try {
 		#Show-InstallationProgress
 		
 		## <Perform Pre-Installation tasks here>
+		###PREINSTALLSECTION###
 
 		## SAMPLE: Uninstall any previous versions of application by calling the command from Uninstall-string
 		#Remove-MSIApplications -Name "<App_Display_Name>"
@@ -145,6 +146,7 @@ Try {
 		}
 		
 		## ***********************<PERFORM INSTALLATION TASK HERE>********************
+		###INSTALLSECTION###
 
 		## SAMPLE: EXE
 		#$exeInstall = "###SETUPFILENAME###"
@@ -183,6 +185,7 @@ Try {
 		[string]$installPhase = 'Post-Installation'
 		
 		## <Perform Post-Installation tasks here>
+		###POSTINSTALLSECTION###
 		
 		## Display a message at the end of the install
 		#If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
@@ -201,6 +204,7 @@ Try {
 		#Show-InstallationProgress
 		
 		## <Perform Pre-Uninstallation tasks here>
+		###PREUNINSTALLSECTION###
 		
 		##*===============================================
 		##* UNINSTALLATION
@@ -214,6 +218,7 @@ Try {
 		}
 		
 		# ***********************<PERFORM UN-INSTALLATION TASK HERE>********************
+		###UNINSTALLSECTION###
 
 		## SAMPLE: Uninstall any previous versions of application by calling the command from Uninstall-string
 		#Remove-MSIApplications -Name "<App_Display_Name>"
@@ -227,6 +232,7 @@ Try {
 		[string]$installPhase = 'Post-Uninstallation'
 		
 		## <Perform Post-Uninstallation tasks here>
+		###POSTUNINSTALLSECTION###
 
 	}
 	
