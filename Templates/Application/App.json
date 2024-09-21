@@ -12,7 +12,7 @@
         "AppVersion": "<replaced_by_pipeline>",
         "Description": "<<ENTER_VALUE:[custom_text]>>",
         "Publisher": "<replaced_by_pipeline>",
-        "Notes": "<<ENTER_VALUE:[custom_text]>>",
+        "Notes": "Created by IntuneAppFactory on ###DATETIME###",
         "Owner": "<<ENTER_VALUE:[custom_text]>>",
         "ScopeTagName": "<<ENTER_VALUE:[custom_text]>>"
     },

@@ -153,6 +153,12 @@ Process {
                         Write-Output -InputObject "File path: $($AppFilePath)"
                         $AppFileContent = Get-Content -Path $AppFilePath | ConvertFrom-Json
                         
+                        # Add timestamp to Notes property
+                        if ($AppFileContent.Information.Notes -match "(\#{3})DATETIME(\#{3})") {
+                            Write-Output -InputObject "Setting Notes timestamp to: $(Get-Date -Format yyyy-MM-dd)"
+                            $AppFileContent.Information.Notes = $AppFileContent.Information.Notes -replace "###DATETIME###", (Get-Date -Format yyyy-MM-dd)
+                        }
+
                         # Update version specific property values
                         $AppFileContent.Information.DisplayName = $App.IntuneAppName
                         $AppFileContent.Information.AppVersion = $App.AppSetupVersion
