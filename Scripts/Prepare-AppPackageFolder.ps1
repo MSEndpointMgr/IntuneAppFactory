@@ -76,6 +76,13 @@ Process {
 
             # Copy all required app specific files from app package folder in Apps root folder to publish folder
             $AppPackageFolderPath = Join-Path -Path $SourceDirectory -ChildPath "Apps\$($App.AppFolderName)"
+
+            # Copy SupportFiles folder from app package folder in Apps root to Source folder if it exists and is not empty
+            $AppSupportFilesPath = Join-Path -Path $AppPackageFolderPath -ChildPath "SupportFiles"
+            if (Test-Path -Path "$AppSupportFilesPath\*") {
+                Copy-Item -Path $AppSupportFilesPath -Destination "$AppPublishFolderPath\Source" -Container -Recurse -Force -Confirm:$false
+            }
+
             $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", "Icon.png")
             foreach ($AppFileName in $AppFileNames) {
                 Write-Output -InputObject "[FILE: $($AppFileName)] - Processing"
