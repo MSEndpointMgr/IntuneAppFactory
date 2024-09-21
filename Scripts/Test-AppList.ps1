@@ -355,8 +355,12 @@ Process {
                     Write-Output -InputObject "URI: $($AppItem.URI)"
 
                     try {
-                        # Attempt to deserialize the setup file name from the URI
-                        $AppSetupFileName = [Uri]$AppItem.URI | Select-Object -ExpandProperty "Segments" | Select-Object -Last 1
+                        # Determine app setup file name
+                        $AppSetupFileName = $App.AppSetupFileName
+                        if ([string]::IsNullOrEmpty($AppSetupFileName)) {
+                            # Attempt to deserialize the setup file name from the URI
+                            $AppSetupFileName = [Uri]$AppItem.URI | Select-Object -ExpandProperty "Segments" | Select-Object -Last 1
+                        }
                         Write-Output -InputObject "Setup file name: $($AppSetupFileName)"
 
                         try {
