@@ -61,14 +61,14 @@ Process {
             Copy-Item -Path "$($FrameworkPath)\*" -Destination $AppPublishFolderPath -Recurse -Force -Confirm:$false
 
             # Create Files folder in Source folder if not found
-            $AppsPublishSourceFilesPath = Join-Path -Path $AppsPublishRootPath -ChildPath "$($App.AppFolderName)\Source\Files"
-            if (-not(Test-Path -Path $AppsPublishSourceFilesPath)) {
-                New-Item -Path $AppsPublishSourceFilesPath -ItemType "Directory" -Force -Confirm:$false | Out-Null
+            $AppPublishSourceFilesPath = Join-Path -Path $AppPublishFolderPath -ChildPath "Source\Files"
+            if (-not(Test-Path -Path $AppPublishSourceFilesPath)) {
+                New-Item -Path $AppPublishSourceFilesPath -ItemType "Directory" -Force -Confirm:$false | Out-Null
             }
 
             # Copy app specific installer from downloaded app package path to publish folder
             $AppInstallerPath = Join-Path -Path $App.AppSetupFolderPath -ChildPath $App.AppSetupFileName
-            $AppInstallerDestinationPath = Join-Path -Path $AppPublishFolderPath -ChildPath "Source\Files\$($App.AppSetupFileName)"
+            $AppInstallerDestinationPath = Join-Path -Path $AppPublishSourceFilesPath -ChildPath $App.AppSetupFileName
             Write-Output -InputObject "Copying installer file from app package download folder"
             Write-Output -InputObject "Source path: $($AppInstallerPath)"
             Write-Output -InputObject "Destination path: $($AppInstallerDestinationPath)"
