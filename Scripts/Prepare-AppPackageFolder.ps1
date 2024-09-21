@@ -83,7 +83,14 @@ Process {
                 Copy-Item -Path $AppSupportFilesPath -Destination "$AppPublishFolderPath\Source" -Container -Recurse -Force -Confirm:$false
             }
 
-            $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", "Icon.png")
+            # Read app specific App.json manifest and convert from JSON
+            $AppDataFile = Join-Path -Path $AppPackageFolderPath -ChildPath "App.json"
+            $AppData = Get-Content -Path $AppDataFile | ConvertFrom-Json
+
+            # Get app icon file name
+            $IconFileName = if (-not([string]::IsNullOrEmpty($AppData.PackageInformation.IconFile))) { $AppData.PackageInformation.IconFile } else { "Icon.png" }
+
+            $AppFileNames = $AppFileNames = @("App.json", "Deploy-Application.ps1", $IconFileName)
             foreach ($AppFileName in $AppFileNames) {
                 Write-Output -InputObject "[FILE: $($AppFileName)] - Processing"
 
@@ -286,7 +293,7 @@ Process {
                         Write-Output -InputObject "Creating '$($AppFileName)' in: $($AppFileDestinationPath)"
                         Out-File -InputObject ($AppFileContent | ConvertTo-Json) -FilePath $AppFileDestinationPath -Encoding "utf8" -Force -Confirm:$false
                     }
-                    "Icon.png" {
+                    $IconFileName {
                         # If IconURL attribute is present for current app item, download icon from URL to the app package folder in the publish root folder
                         if (-not([string]::IsNullOrEmpty($App.IconURL))) {
                             Write-Output -InputObject "Downloading icon file from URL: $($App.IconURL)"
@@ -302,9 +309,6 @@ Process {
                             Write-Output -InputObject "Destination path: $($AppFileDestinationPath)"
                             Copy-Item -Path $AppFilePath -Destination $AppFileDestinationPath -Force -Confirm:$false
                         }
-
-                        # Declare the icon file name to set in the current app item attribute for IconFileName
-                        $IconFileName = $AppFileName
                     }
                 }
 

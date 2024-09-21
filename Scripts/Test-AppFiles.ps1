@@ -101,26 +101,28 @@ Process {
                                         }
                                     }
                                     else {
-                                        Write-Warning -Message "Icon URL was defined but value was empty, checking for local Icon.png file"
-                                        $IconFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath "Icon.png"
+                                        $IconFile = $AppFileContent.PackageInformation.IconFile
+                                        Write-Warning -Message "Icon URL was defined but value was empty, checking for local $IconFile file"
+                                        $IconFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath $IconFile
                                         if (-not(Test-Path -Path $IconFilePath)) {
-                                            Write-Warning -Message "Could not detect local Icon.png file in app folder"
+                                            Write-Warning -Message "Could not detect local $IconFile file in app folder"
                                             $AppAllowed = $false
                                         }
                                         else {
-                                            Write-Output -InputObject "Found local Icon.png file in app folder"
+                                            Write-Output -InputObject "Found local $IconFile file in app folder"
                                         }
                                     }
                                 }
                                 else {
-                                    Write-Output -InputObject "Icon URL was not defined, testing for local Icon.png file"
-                                    $IconFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath "Icon.png"
+                                    $IconFile = $AppFileContent.PackageInformation.IconFile
+                                    Write-Output -InputObject "Icon URL was not defined, testing for local $IconFile file"
+                                    $IconFilePath = Join-Path -Path $AppPackageFolderPath -ChildPath $IconFile
                                     if (-not(Test-Path -Path $IconFilePath)) {
-                                        Write-Warning -Message "Could not detect local Icon.png file in app folder"
+                                        Write-Warning -Message "Could not detect local $IconFile file in app folder"
                                         $AppAllowed = $false
                                     }
                                     else {
-                                        Write-Output -InputObject "Found local Icon.png file in app folder"
+                                        Write-Output -InputObject "Found local $IconFile file in app folder"
                                     }
                                 }
         
