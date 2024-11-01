@@ -54,6 +54,12 @@ Process {
             # Split the version string by non-numerical characters and then join them by a period to construct the version number
             $ConvertVersion = ($Version -split "\D") -join "."
 
+            #If Version has more then 4 Values, then cut them (e.g 1.2.3.4.5 to 1.2.3.4)
+            $VersionSplit = $ConvertVersion.split("\.")
+            If (($VersionSplit).Count -gt 4){
+                $ConvertVersion = "$($VersionSplit[0]).$($VersionSplit[1]).$($VersionSplit[2]).$($VersionSplit[3])"
+            }
+
             # Return the converted version number
             return $ConvertVersion
         }
