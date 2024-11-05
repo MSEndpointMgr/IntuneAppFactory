@@ -12,15 +12,22 @@
         "AppVersion": "<replaced_by_pipeline>",
         "Description": "Install Notepad++",
         "Publisher": "<replaced_by_pipeline>",
+        "Developer": "",
         "Notes": "",
-        "Owner": "",
+        "InformationURL": "",
+        "PrivacyURL": "",
+        "CompanyPortalFeaturedApp": false,
+        "CategoryName": [""],
+        "Owner": ""
         "ScopeTagName": ""
     },
     "Program": {
         "InstallCommand": "Deploy-Application.exe Install",
         "UninstallCommand": "Deploy-Application.exe Uninstall",
         "InstallExperience": "system",
-        "DeviceRestartBehavior": "suppress"
+        "DeviceRestartBehavior": "suppress",
+        "MaximumInstallationTimeInMinutes": "60",
+        "AllowAvailableUninstall": "true"
     },
     "RequirementRule": {
         "MinimumSupportedWindowsRelease": "W10_22H2",
