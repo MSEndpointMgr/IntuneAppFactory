@@ -297,6 +297,10 @@ Process {
 
         # Foreach application in appList.json, check existence in Intunem and determine if new application / version should be published
         $AppsProcessList = Get-Content -Path $AppsProcessListFilePath -ErrorAction "Stop" | ConvertFrom-Json
+
+        #Retrieve all apps from Intune
+        $Win32AppResources = Invoke-MSGraphOperation -Get -APIVersion "Beta" -Resource "deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')"
+        
         foreach ($App in $AppsProcessList) {
             Write-Output -InputObject "[APPLICATION: $($App.IntuneAppName)] - Initializing"
 
@@ -367,7 +371,6 @@ Process {
                             
                             # Attempt to locate the application in Intune
                             Write-Output -InputObject "Attempting to find application in Intune using naming convention: $($AppDisplayName)"
-                            $Win32AppResources = Invoke-MSGraphOperation -Get -APIVersion "Beta" -Resource "deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')"
                             if ($Win32AppResources -ne $null) {
 
                                 # Detect Win32 application matching displayName
