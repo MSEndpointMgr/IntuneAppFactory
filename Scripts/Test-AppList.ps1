@@ -23,6 +23,8 @@
     1.0.4 - (2024-03-07) Added support for empty filter options in Get-EvergreenAppItem function
     1.0.5 - (2024-08-25) Added function to test and convert version strings with invalid characters to improve version comparison for detected applications in Intune.
                          Improved application detection logic using the new naming convention property specified in the appList.json file.
+    1.0.6 - (2024-11-22) Added Nevergreen Appsource
+    1.0.7 - (2025-01-02) Added custom UserAgent to fix some download issues if "wget" is blocked by download provider.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -123,7 +125,7 @@ Process {
                 $FilterList.Add("`$PSItem.Release -eq ""$($FilterOptions.Release)""") | Out-Null
             }
             if ($FilterOptions.ImageType) {
-                $FilterList.Add("`$PSItem.Release -eq ""$($FilterOptions.Release)""") | Out-Null
+                $FilterList.Add("`$PSItem.ImageType -eq ""$($FilterOptions.Release)""") | Out-Null
             }
 
             # Construct script block from filter list array
@@ -138,6 +140,76 @@ Process {
         
         # Handle return value
         return $EvergreenApp
+    }
+
+    function Get-NevergreenAppItem {
+        param (
+            [parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$AppId,
+
+            [Parameter(Mandatory = $false)]
+            [System.Collections.Hashtable] $AppParams,
+    
+            [parameter(Mandatory = $false)]
+            [ValidateNotNullOrEmpty()]
+            [System.Object[]]$FilterOptions
+        )
+        if ($PSBoundParameters["FilterOptions"]) {
+            # Construct array list to build the dynamic filter list
+            $FilterList = New-Object -TypeName "System.Collections.ArrayList"
+                
+            # Process known filter properties and add them to array list if present on current object
+            if ($FilterOptions.Architecture) {
+                $FilterList.Add("`$PSItem.Architecture -eq ""$($FilterOptions.Architecture)""") | Out-Null
+            }
+            if ($FilterOptions.Platform) {
+                $FilterList.Add("`$PSItem.Platform -eq ""$($FilterOptions.Platform)""") | Out-Null
+            }
+            if ($FilterOptions.Channel) {
+                $FilterList.Add("`$PSItem.Channel -eq ""$($FilterOptions.Channel)""") | Out-Null
+            }
+            if ($FilterOptions.Type) {
+                $FilterList.Add("`$PSItem.Type -eq ""$($FilterOptions.Type)""") | Out-Null
+            }
+            if ($FilterOptions.Installer) {
+                $FilterList.Add("`$PSItem.Installer -eq ""$($FilterOptions.Installer)""") | Out-Null
+            }
+            if ($FilterOptions.InstallerType) {
+                $FilterList.Add("`$PSItem.InstallerType -eq ""$($FilterOptions.InstallerType)""") | Out-Null
+            }
+            if ($FilterOptions.Language) {
+                $FilterList.Add("`$PSItem.Language -eq ""$($FilterOptions.Language)""") | Out-Null
+            }
+            if ($FilterOptions.Edition) {
+                $FilterList.Add("`$PSItem.Edition -eq ""$($FilterOptions.Edition )""") | Out-Null
+            }
+            if ($FilterOptions.Ring) {
+                $FilterList.Add("`$PSItem.Ring -eq ""$($FilterOptions.Ring)""") | Out-Null
+            }
+            if ($FilterOptions.Release) {
+                $FilterList.Add("`$PSItem.Release -eq ""$($FilterOptions.Release)""") | Out-Null
+            }
+            if ($FilterOptions.ImageType) {
+                $FilterList.Add("`$PSItem.ImageType -eq ""$($FilterOptions.ImageType)""") | Out-Null
+            }
+
+            # Construct script block from filter list array
+            $FilterExpression = [scriptblock]::Create(($FilterList -join " -and "))
+
+            # Get the evergreen app based on dynamic filter list
+            If ($null -ne $AppParams){
+                $NevergreenApp = Get-NevergreenApp -Name $AppId -AppParams $AppParams  | Where-Object -FilterScript $FilterExpression
+            } else {
+                $NevergreenApp = Get-NevergreenApp -Name $AppId | Where-Object -FilterScript $FilterExpression
+            }
+        }
+        else {
+            $NevergreenApp = Get-NevergreenApp -Name $AppId
+        }
+        
+        # Handle return value
+        return $NevergreenApp
     }
 
     function Get-WindowsPackageManagerItem {
@@ -328,6 +400,22 @@ Process {
                             $AppItem = Get-EvergreenAppItem -AppId $App.AppId
                         }
                     }
+                    "Nevergreen" {
+                        Write-Output -InputObject "Attempting to retrieve app details from Nevergreen"
+                        if ($null -ne $App.FilterOptions) {
+                            Write-Output -InputObject "AppId value: $($App.AppId)"
+                            Write-Output -InputObject "Filter options: $($App.FilterOptions)"
+                            If ($null -ne $App.AppParams.AppLanguage){
+                                $AppItem = Get-NevergreenAppItem -AppId $App.AppId -AppParams @{Language = $App.AppParams.AppLanguage} -FilterOptions $App.FilterOptions 
+                            } else {
+                                $AppItem = Get-NevergreenAppItem -AppId $App.AppId -FilterOptions $App.FilterOptions
+                            } 
+                        }
+                        else {
+                            Write-Output -InputObject "AppId value: $($App.AppId)"
+                            $AppItem = Get-NevergreenAppItem -AppId $App.AppId
+                        }
+                    }
                     "StorageAccount" {
                         Write-Output -InputObject "Attempting to retrieve app details from Storage Account"
                         $AppItem = Get-StorageAccountAppItem -StorageAccountName $App.StorageAccountName -ContainerName $App.StorageAccountContainerName
@@ -436,6 +524,7 @@ Process {
                                     "AppSetupFileName" = $AppSetupFileName
                                     "AppSetupVersion" = $AppItem.Version
                                     "URI" = $AppItem.URI
+                                    "UserAgent" = $App.UserAgent
                                     "InstallerType" = $AppItem.InstallerType
                                     "FileExtension" = $AppItem.FileExtension
                                     "StorageAccountName" = if (-not([string]::IsNullOrEmpty($App.StorageAccountName))) { $App.StorageAccountName } else { [string]::Empty }

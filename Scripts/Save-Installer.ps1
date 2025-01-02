@@ -13,12 +13,13 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-04-04
-    Updated:     2024-03-04
+    Updated:     2025-01-02
 
     Version history:
     1.0.0 - (2022-04-04) Script created
     1.0.1 - (2023-06-14) Added support for download setup files from storage account
     1.0.2 - (2024-03-04) Added support for decompressing downloaded setup archive files and finding setup file within archive
+    1.0.3 - (2025-01-02) Added custom UserAgent to fix some download issues if "wget" is blocked by download provider.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
@@ -40,7 +41,11 @@ Process {
 
             [parameter(Mandatory = $true, HelpMessage = "Specify the output file name of downloaded file.")]
             [ValidateNotNullOrEmpty()]
-            [string]$Name
+            [string]$Name,
+
+            [parameter(Mandatory = $false, HelpMessage = "Specify the UserAgent for the download command if wget is not working.")]
+            [ValidateNotNullOrEmpty()]
+            [string]$UserAgent = "wget"
         )
         Begin {
             # Force usage of TLS 1.2 connection
@@ -71,7 +76,7 @@ Process {
             do {
                 try {
                     $OutFilePath = Join-Path -Path $Path -ChildPath $Name
-                    Invoke-WebRequest -Uri $URI -OutFile $OutFilePath -UseBasicParsing -UserAgent "wget" -ErrorAction "Stop"
+                    Invoke-WebRequest -Uri $URI -OutFile $OutFilePath -UseBasicParsing -UserAgent $UserAgent -ErrorAction "Stop"
                 }
                 catch [System.Exception] {
                     Write-Warning -Message "Failed to download file from '$($URI)' with error message: $($_.Exception.Message)"
@@ -181,8 +186,8 @@ Process {
                         Get-StorageAccountBlobContent -StorageAccountName $App.StorageAccountName -ContainerName $App.StorageAccountContainerName -BlobName $App.BlobName -Path $AppSetupFolderPath -NewName $App.AppSetupFileName -ErrorAction "Stop"
                     }
                     default {
-                        Write-Output -InputObject "Attempting to download '$($App.AppSetupFileName)' from: $($App.URI)"
-                        Save-File -URI $App.URI -Path $AppSetupFolderPath -Name $App.AppSetupFileName -ErrorAction "Stop"
+                        Write-Output -InputObject "Attempting to download '$($App.AppSetupFileName)' from: $($App.URI) with UserAgent $($App.UserAgent)"
+                        Save-File -URI $App.URI -Path $AppSetupFolderPath -Name $App.AppSetupFileName -UserAgent $App.UserAgent -ErrorAction "Stop"
                     }
                 }
                 Write-Output -InputObject "Successfully downloaded installer"

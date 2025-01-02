@@ -13,12 +13,13 @@
     Author:      Nickolaj Andersen
     Contact:     @NickolajA
     Created:     2022-03-29
-    Updated:     2024-03-27
+    Updated:     2025-01-02
 
     Version history:
     1.0.0 - (2022-03-29) Script created
     1.1.0 - (2022-11-16) Added tests for incorrect detection rule logic and detection of given detection rule script file
     1.1.1 - (2024-03-27) Added test for icon URL accessibility
+    1.1.2 - (2025-01-02) Added custom UserAgent to fix some download issues if "wget" is blocked by download provider.
 #>
 Process {
     # Intitialize variables
@@ -170,6 +171,7 @@ Process {
                     "StorageAccountName" = if (-not([string]::IsNullOrEmpty($App.StorageAccountName))) { $App.StorageAccountName } else { [string]::Empty }
                     "StorageAccountContainerName" = if (-not([string]::IsNullOrEmpty($App.StorageAccountContainerName))) { $App.StorageAccountContainerName } else { [string]::Empty }
                     "IconURL" = if ($IconURLAvailable -eq $true) { $AppFileContent.PackageInformation.IconURL } else { [string]::Empty }
+                    "UserAgent" = if (-not([string]::IsNullOrEmpty($App.UserAgent))) { $App.UserAgent } else { "wget" }
                 }
 
                 # Add to list of applications to be processed
