@@ -18,12 +18,13 @@
     Version history:
     1.0.0 - (2022-04-04) Script created
     1.0.1 - (2024-03-04) Improved module installation logic
+    1.0.2 - (2024-11-22) Added Nevergreen Module
 #>
 Process {
     # Ensure package provider is installed
     $PackageProvider = Install-PackageProvider -Name "NuGet" -Force
 
-    $Modules = @("Evergreen", "IntuneWin32App", "Az.Storage", "Az.Resources", "MSGraphRequest")
+    $Modules = @("Evergreen", "Nevergreen", "IntuneWin32App", "Az.Storage", "Az.Resources", "MSGraphRequest")
     foreach ($Module in $Modules) {
         try {
             Write-Output -InputObject "Attempting to locate module: $($Module)"
